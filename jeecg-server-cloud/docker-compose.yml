@@ -1,0 +1,105 @@
+version: '2'
+services:
+  jeecg-boot-nacos:
+    restart: always
+    build:
+      context: ./jeecg-cloud-nacos
+    ports:
+      - 8848:8848
+    container_name: jeecg-boot-nacos
+    hostname: jeecg-boot-nacos
+
+  jeecg-boot-system:
+    depends_on:
+      - jeecg-boot-nacos
+    build:
+      context: ./jeecg-system-cloud-start
+    container_name: jeecg-system-start
+    hostname: jeecg-boot-system
+    restart: on-failure
+    environment:
+      - TZ=Asia/Shanghai
+
+  jeecg-boot-demo:
+    depends_on:
+      - jeecg-boot-nacos
+    build:
+      context: ./jeecg-demo-cloud-start
+    container_name: jeecg-demo-start
+    hostname: jeecg-boot-demo
+    restart: on-failure
+    environment:
+      - TZ=Asia/Shanghai
+
+  jeecg-boot-gateway:
+    restart: on-failure
+    build:
+      context: ./jeecg-cloud-gateway
+    ports:
+      - 9999:9999
+    depends_on:
+      - jeecg-boot-nacos
+      - jeecg-boot-system
+    container_name: jeecg-boot-gateway
+    hostname: jeecg-boot-gateway
+
+  jeecg-module-classify:
+    restart: on-failure
+    build:
+      context: ../jeecg-module-classify/jeecg-module-classify-start
+#    depends_on:
+#      - jeecg-boot-nacos
+#      - jeecg-boot-system
+#      - jeecg-boot-gateway
+    network_mode: "host"
+    container_name: jeecg-module-classify
+    hostname: jeecg-module-classify
+    extra_hosts:
+      - "jeecg-boot-nacos:10.3.1.153"
+      - "jeecg-boot-mysql:10.3.1.151"
+      - "jeecg-boot-redis:10.3.1.153"
+      - "postgis:10.3.1.151"
+      - "jeecg-module-classify:127.0.0.1"
+
+  jeecg-module-sample:
+    restart: on-failure
+    build:
+      context: ../jeecg-module-sample/jeecg-module-sample-start
+    #    depends_on:
+    #      - jeecg-boot-nacos
+    #      - jeecg-boot-system
+    #      - jeecg-boot-gateway
+    network_mode: "host"
+    container_name: jeecg-module-sample
+    hostname: jeecg-module-sample
+    extra_hosts:
+      - "jeecg-boot-nacos:10.3.1.153"
+      - "jeecg-boot-mysql:10.3.1.151"
+      - "jeecg-boot-redis:10.3.1.153"
+      - "postgis:10.3.1.151"
+      - "jeecg-module-sample:127.0.0.1"
+
+
+
+
+#  jeecg-boot-sentinel:
+#    restart: on-failure
+#    build:
+#      context: ./jeecg-visual/jeecg-cloud-sentinel
+#    ports:
+#      - 9000:9000
+#    depends_on:
+#      - jeecg-boot-nacos
+#      - jeecg-boot-demo
+#      - jeecg-boot-system
+#      - jeecg-boot-gateway
+#    container_name: jeecg-boot-sentinel
+#    hostname: jeecg-boot-sentinel
+#
+#  jeecg-boot-xxljob:
+#    build:
+#      context: ./jeecg-visual/jeecg-cloud-xxljob
+#    ports:
+#      - 9080:9080
+#    container_name: jeecg-boot-xxljob
+#    hostname: jeecg-boot-xxljob

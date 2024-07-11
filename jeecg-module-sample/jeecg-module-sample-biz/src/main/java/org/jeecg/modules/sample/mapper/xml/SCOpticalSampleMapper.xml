@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.jeecg.modules.sample.mapper.SCOpticalSampleMapper">
+    <resultMap id="resultMap" type="org.jeecg.modules.sample.entity.SCOpticalSample">
+        <result column="bbox" property="bbox" typeHandler="org.jeecg.modules.sample.handler.GeometryTypeHandler"/>
+    </resultMap>
+    <select id="listSCOpticalSamples" resultMap="resultMap">
+        select * from sc_sample
+        ${ew.customSqlSegment}
+        <if test="ew.customSqlSegment == null or ew.customSqlSegment == '' and  area != null ">
+            WHERE
+        </if>
+        <if test="ew.customSqlSegment != null and ew.customSqlSegment != '' and  area != null ">
+            AND
+        </if>
+        <if test="area != null ">
+            ST_Intersects(bbox, #{area,typeHandler=org.jeecg.modules.sample.handler.GeometryTypeHandler});
+        </if>
+<!--        <if test="area != null and label_id != null">-->
+<!--            AND-->
+<!--        </if>-->
+<!--        <if test="label_id != null ">-->
+<!--            label_id != #{label_id}-->
+<!--        </if>-->
+    </select>
+
+    <!--    select * from rssodsample where ST_Intersects(bbox, ST_GeomFromText('POLYGON((1.0 21.0, 6.0 21.0, 6.0 26.0, 1.0 26.0, 1.0 21.0))',4326));-->
+
+</mapper>
