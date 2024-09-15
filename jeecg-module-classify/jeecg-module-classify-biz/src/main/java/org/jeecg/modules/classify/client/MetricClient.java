@@ -4,9 +4,7 @@ import org.jeecg.modules.classify.entity.Edge;
 import org.jeecg.modules.classify.entity.LabelCategoryDTO;
 import org.jeecg.modules.classify.entity.PairDTO;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -15,4 +13,6 @@ import java.util.Map;
 public interface MetricClient {
     @PostMapping("/category/similar/")
     PairDTO<List<Edge>, List<LabelCategoryDTO>> mergeLists(@RequestBody List<String> nodes);
+    @GetMapping("/category/centroids/{label_id}")
+    List<String> getCentroids(@PathVariable Long label_id);
 }

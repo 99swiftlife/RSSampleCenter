@@ -33,12 +33,13 @@ public class LabelCategoryDO {
     private Long id;
     private String name;
     private Integer num;
-//    private String taskType;
+    private String taskType;
     private String descr;
     private String osmUrl;
     private byte[] textFeature;
     @TableField(value = "img_feature",typeHandler = ByteArrayHandler.class)
     private List<byte[]> imgFeature;
+    private Integer unsolvedNum;
 
     public LabelCategoryDO(LabelCategoryDTO labelCategoryDTO){
         this.name = labelCategoryDTO.getName();

@@ -1,9 +1,7 @@
-package org.jeecg.modules.sample.entity;
+package org.jeecg.modules.cbir.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
  * @program: RSSampleCenter
@@ -12,12 +10,9 @@ import lombok.NoArgsConstructor;
  * @create: 2024-03-27 01:38
  **/
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class SampleMetaDTO {
      @JsonProperty("sample_size")
      private Integer sampleSize;
-     @JsonProperty("bbox")
      private BoundingBox bbox;
      @JsonProperty("resolution")
      private Float res;

@@ -78,7 +78,7 @@ mybatis:
   type-handlers-package: org.jeecg.modules.sample.handler
 mybatis-plus:
   configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
 #hystrix的超时时间
 feign:
   client:
@@ -92,3 +92,13 @@ feign:
 ribbon:
   ReadTimeout: 3000000
   ConnectTimeout: 3000000
+logging:
+  level:
+    org.apache.ibatis: WARN
+    org.mybatis.spring: WARN
+    org.jeecg.modules.sample.mapper: WARN
+    com:
+      baomidou:
+        mybatisplus: INFO
+    org:
+      mybatis: INFO

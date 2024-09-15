@@ -35,8 +35,4 @@ public class SCOpticalSample extends RSSample{
     public void loadImage() {
 
     }
-    @Override
-    public Boolean validate(){
-        return super.validate();
-    }
 }

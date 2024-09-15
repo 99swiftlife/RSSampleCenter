@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.A;
 import org.jeecg.common.util.RedisUtil;
 import org.jeecg.modules.sample.client.CBIRServiceClient;
 import org.jeecg.modules.sample.client.ClassifyClient;
@@ -16,6 +17,8 @@ import org.jeecg.modules.sample.vo.Result;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import org.apache.commons.beanutils.BeanUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.nio.file.Paths;
@@ -33,7 +36,7 @@ public class SampleController {
 	@Autowired
 	private CBIRServiceClient cbirServiceClient;
 	@Autowired
-    private ClassifyClient classifyClient;
+	private ClassifyClient classifyClient;
 	@Autowired
 	private IDataSetService dataSetService;
 	@Autowired
@@ -54,9 +57,9 @@ public class SampleController {
 	@ApiOperation(value = "exact query", notes = "样本元数据检索接口")
 	@GetMapping(value = "/query/exact")
 	public Result<IPage<RSSampleVO>> listSample(SCOpticalSample rsSample,
-													 @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
-													 @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
-													 HttpServletRequest req) throws NoSuchFieldException, IllegalAccessException {
+												@RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
+												@RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
+												HttpServletRequest req) throws NoSuchFieldException, IllegalAccessException {
 		log.info(" ---查询样本信息--- ");
 		return getiPageResult(rsSample, pageNo, pageSize, req.getParameterMap());
 	}
@@ -93,17 +96,12 @@ public class SampleController {
 			List<Dataset> datasets =  dataSetService.findByName(datasetDTO.getDatasetName());
 			if(datasets.size()>0){
 				dst = datasets.get(0);
-				if(dst.validate())
+				if(dst.validate()){
 					// TODO 返回信息：数据集已在样本库中
 					return org.jeecg.common.api.vo.Result.OK("数据集已在样本库中！",datasets.get(0));
+				}
 			}
-
-			// 先写入部分数据集信息，以获取datasetId
-			dst.setSensor(datasetDTO.getSensor()) ;
-			dst.setDatasetName(datasetDTO.getDatasetName());
-			dst.setTaskType(datasetDTO.getTaskType());
-			dataSetService.saveOrUpdate(dst);
-
+			dst.copyFromDto(datasetDTO);
 			// TODO 解析数据集位置（本地、HDFS、AWS、Google),根据不同位置调用对应的数据获取方法
 			String dataSetUrl = datasetDTO.getDatasetUrl();
 			String alluxioPath = "";
@@ -115,21 +113,11 @@ public class SampleController {
 				alluxioPath =  dataSetUrl.substring(8);
 				System.out.println("ALLUXIO PATH: "+alluxioPath);
 			}
+			dst.setDatasetUrl(alluxioPath);
+			// 重置已处理的样本数量
+			dst.setProcessedNum(0);
+			dataSetService.saveOrUpdate(dst);
 
-			/**解析数据集波段信息*/
-			Map<Integer,Map<String,Integer>> bandInfoMap = new HashMap<>();
-			List<List<String>>bandInfos = datasetDTO.getBandInfo();
-			if(bandInfos!=null && bandInfos.size()>0){
-				for(List<String> bands :bandInfos){
-					Integer sz = bands.size();
-					Map<String,Integer> bandMap = new HashMap<>();
-					for(int i = 0;i<sz;++i){
-						String band= bands.get(i);
-						bandMap.put(band.toLowerCase().replace('_',' '),i+1);
-					}
-					bandInfoMap.put(sz,bandMap);
-				}
-			}
 
 			// TODO 修改以兼容样本集细分为train/val/test的数据集
 			/**
@@ -140,14 +128,22 @@ public class SampleController {
 			// 获取样本集的标签存储类型
 			String labelPath = datasetDTO.getLabelPath();
 			if(labelPath == null){
-				for(String folder: datasetDTO.getImgFolder()){
+				if(datasetDTO.getImgFolders()==null){
+					datasetDTO.setImgFolders(Arrays.asList(""));
+				}
+				for(String folder: datasetDTO.getImgFolders()){
 					String datasetImgFolder = Paths.get(alluxioPath,folder).toString();
-					dataSetService.parseDataset(datasetImgFolder,datasetDTO.getDatasetName(),datasetDTO.getImgExt(),bandInfoMap,dst,datasetDTO.getMaxCategoryLevel());
+					dataSetService.parseDataset(datasetImgFolder,dst);
 				}
 			}
 			// 记录数据集信息，写入数据集表
+			if(dst.getProcessedNum()>0){
+				dataSetService.increasProcessed(dst.getId(),dst.getProcessedNum());
+				dst.setProcessedNum(null);
+			}
 			dataSetService.saveOrUpdate(dst);
 		}catch (Exception e){
+			e.printStackTrace();
 			return org.jeecg.common.api.vo.Result.error("数据集解析错误！"+e.getMessage(),dst);
 		}
 		// TODO 若解析成功则取消数据集的挂载 ?
@@ -162,9 +158,9 @@ public class SampleController {
 	@ApiOperation(value = "general query", notes = "样本元数据检索接口")
 	@GetMapping(value = "/query/general")
 	Result<IPage<RSSampleVO>> listDynamicSamples(SCOpticalSample rsSample,
-							@RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
-							@RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
-							HttpServletRequest req) throws NoSuchFieldException, IllegalAccessException {
+												 @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
+												 @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
+												 HttpServletRequest req) throws NoSuchFieldException, IllegalAccessException {
 		Map<String, String[]> paramMap = new HashMap(req.getParameterMap());
 		// todo>>若不存在labelIds，则返回错误信息
 		if(!paramMap.containsKey("labelId_MultiString")){
@@ -179,6 +175,7 @@ public class SampleController {
 		paramMap.remove("labelId_MultiString");
 
 		// 将CBIR检索得到的sampleIds作为in过滤条件
+		System.out.println("labelId_MultiString");
 		List<Long>sampleIds = cbirServiceClient.contentBasedSearch(ids);
 		paramMap.put("id_MultiString",new String[]{sampleIds.stream()
 				.map(String::valueOf) // 将Long转换为String
@@ -196,10 +193,12 @@ public class SampleController {
 	@ApiOperation(value = "resolve progress", notes = "样本解析进度监控")
 	@GetMapping(value = "/resolve/progress/{name}")
 	public List<Integer> parseProgress(@PathVariable(value = "name")String datasetName){
-		Integer totalNum =  (Integer)redisUtil.hget("dataset_total",datasetName);
-		Integer resolveNum = (Integer)redisUtil.hget("dataset_progress",datasetName);
-		if(totalNum!=null&&resolveNum!=null)
+		Dataset dst = dataSetService.findByName(datasetName).get(0);
+		Integer totalNum =  dst.getInsNum();
+		Integer resolveNum = dst.getProcessedNum();
+		if(totalNum!=null&&resolveNum!=null){
 			return Arrays.asList(new Integer[]{resolveNum, totalNum});
+		}
 		return new ArrayList<>();
 	}
 
@@ -225,30 +224,72 @@ public class SampleController {
 	}
 
 	/**
-	 * 数据集解析情况校验
-	 * param: labelId_MultiString	标签类别id列表
-	 * param: labelId_Filter	标签类别id列表
+	 * 数据集解析程度校验
+	 * param: datasetDTO	数据集数据传输对象
+	 * return: ResultVo	结果视图
+	 *
+	 * 总结果：是否全部成功解析
+	 * failedSamples List<RSSample> 未解析成功的样本
+	 *
 	 * */
-	@ApiOperation(value = "resolve progress", notes = "样本解析进度监控")
-	@GetMapping(value = "/resolve/progress/{name}")
-	public Boolean dataSetCheck(@RequestBody DatasetDTO datasetDTO){
-		String datasetName = datasetDTO.getDatasetName();
+	@ApiOperation(value = "dataset check", notes = "数据集解析完毕校验")
+	@GetMapping(value = "/resolve/check/{name}")
+	public List<RSSample> dataSetCheck(@PathVariable(value = "name")String datasetName){
 		Dataset dst = dataSetService.findByName(datasetName).get(0);
-		if(dst.getInsNum() != null ){
-			if(dst.getProcessedNum() != null && dst.getInsNum() == dst.getProcessedNum())
-				return true;
-			else{
-				List<SCOpticalSample> samples = scOpticalSampleService.findByDatasetId(dst.getId());
-				Boolean validated = true;
-				Integer processedNum = 0;
-				for(SCOpticalSample sample : samples){
-					validated = validated && sample.validate();
-					if(validated)processedNum+=1;
-				}
-				dst.setProcessedNum(processedNum);
-				return validated;
+		List<RSSample> failedSamples = new ArrayList<>();
+		List<SCOpticalSample> samples = scOpticalSampleService.findByDatasetId(dst.getId());
+		for(RSSample sample : samples){
+			if(sample.getStatue() != SampleStatue.SUCCESS){
+				failedSamples.add(sample);
 			}
 		}
-		return false;
+		return failedSamples;
+	}
+
+	// 重试数据集中未解析成功的样本
+	@GetMapping(value = "/resolve/retry/{name}")
+	private void retry(@PathVariable(value = "name")String datasetName){
+		Dataset dst = dataSetService.findByName(datasetName).get(0);
+		List<RSSample>failedSamples = dataSetCheck(datasetName);
+		List<SampleDTO>dtos = new ArrayList<>();
+		for(RSSample sample: failedSamples){
+			switch(sample.getStatue())
+			{
+				case FAIL:
+					// 补全样本数据集id等基本信息
+
+				case INIT:
+				case RESOLVED:
+					// 重新解析样本图像元素据和特征
+					dtos.add(new SampleDTO(sample.getId(), sample.getLabelId(),sample.getImgPath()));
+					break;
+				default :
+					System.out.println("未知任务状态");
+			}
+		}
+		dataSetService.sendBatchToSampleResolver(dtos,dst.getBandInfo());
+	}
+
+	@ApiOperation(value = "dataset list", notes = "数据集检索")
+	@GetMapping(value = "/dataset/list")
+	public Result<IPage<DatasetVO>>listDatasets( Dataset dataset,
+							   @RequestParam(name="pageNo", defaultValue="1") Integer pageNo,
+							   @RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
+							   HttpServletRequest req){
+		Result<IPage<DatasetVO>> result = new Result<>();
+		IPage<Dataset> page = new Page<>(pageNo, pageSize);
+		page = dataSetService.page(page);
+		IPage<DatasetVO> pageVO = new Page<>(pageNo, pageSize);
+		List<DatasetVO> voData =  new ArrayList<>();
+		for(Dataset record:  page.getRecords()){
+			DatasetVO dstVO = new DatasetVO(record);
+			Long defaulImage = scOpticalSampleService.page(new Page<>(1, 1)).getRecords().get(0).getId();
+			dstVO.setDefaultImageId(defaulImage);
+			voData.add(dstVO);
+		}
+		pageVO.setRecords(voData);
+		result.setSuccess(true);
+		result.setResult(pageVO);
+		return result;
 	}
 }

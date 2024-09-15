@@ -24,6 +24,12 @@
             <groupId>org.alluxio</groupId>
             <artifactId>alluxio-core-client-fs</artifactId>
         </dependency>
+        <!-- beanutils -->
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.9.4</version>
+        </dependency>
 <!--        &lt;!&ndash; 读写分离-分布分表 sharding-jdbc &ndash;&gt;-->
 <!--        <dependency>-->
 <!--            <groupId>org.apache.shardingsphere</groupId>-->

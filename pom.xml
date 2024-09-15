@@ -85,13 +85,11 @@
 
 	<modules>
         <module>jeecg-boot-base-core</module>
-        <module>jeecg-module-demo</module>
         <module>jeecg-module-system</module>
 		<module>jeecg-server-cloud</module>
-	  	<module>jeecg-module-erp</module>
     	<module>jeecg-module-classify</module>
-    <module>jeecg-module-sample</module>
-    <module>jeecg-module-cbir</module>
+    	<module>jeecg-module-sample</module>
+		<module>jeecg-module-cbir</module>
   </modules>
 
 	<repositories>

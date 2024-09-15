@@ -1,14 +1,22 @@
 package org.jeecg.modules.sample.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.annotations.ApiModel;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
+import org.jeecg.modules.sample.handler.JsonTypeHandler;
+import org.springframework.beans.BeanUtils;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @program: RSSampleCenter
@@ -17,6 +25,8 @@ import java.util.List;
  * @create: 2023-12-04 20:51
  **/
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 @TableName(value = "sample_dataset",autoResultMap=true)
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
@@ -36,7 +46,42 @@ public class Dataset {
 //    private BoundingBox spitalRange;
 //    private List<String > timeRange;
     private Integer processedNum = 0;
+
+    private String datasetUrl;
+    @TableField(value = "band_info",typeHandler = JsonTypeHandler.class)
+    private Map<Integer, Map<String,Integer>> bandInfo;
+    private String labelPath;
+    private String metaPath;
+    @TableField(value = "img_folders",typeHandler = com.example.typehandler.StringListTypeHandler.class)
+    private List<String> imgFolders;
+    private String platform;
+    private String imgExt;
+    private Integer maxCategoryLevel;
+
     public Boolean validate(){
         return id !=null && datasetName!=null && catNum!=null && insNum!=null && processedNum!=null && processedNum == insNum ;
+    }
+    public void copyFromDto(DatasetDTO dto) throws InvocationTargetException, IllegalAccessException {
+        BeanUtils.copyProperties(dto,this);
+        /**解析数据集波段信息*/
+        Map<Integer,Map<String,Integer>> bandInfoMap = new HashMap<>();
+        List<List<String>>bandInfos = dto.getBandInfo();
+        if(bandInfos!=null && bandInfos.size()>0){
+            for(List<String> bands :bandInfos){
+                Integer sz = bands.size();
+                Map<String,Integer> bandMap = new HashMap<>();
+                for(int i = 0;i<sz;++i){
+                    String band= bands.get(i);
+                    bandMap.put(band.toLowerCase().replace('_',' '),i+1);
+                }
+                bandInfoMap.put(sz,bandMap);
+            }
+        }
+
+        bandInfo = bandInfoMap;
+
+    }
+    public void addProcessedNum(){
+        processedNum+=1;
     }
 }

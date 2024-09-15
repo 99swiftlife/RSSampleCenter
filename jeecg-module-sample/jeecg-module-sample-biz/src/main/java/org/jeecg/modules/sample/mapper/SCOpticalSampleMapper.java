@@ -7,6 +7,8 @@ import org.jeecg.modules.sample.entity.BoundingBox;
 import org.apache.ibatis.annotations.Param;
 import org.jeecg.modules.sample.entity.SCOpticalSample;
 
+import java.util.List;
+
 public interface SCOpticalSampleMapper extends BaseMapper<SCOpticalSample> {
-    IPage<SCOpticalSample> listSCOpticalSamples(IPage<SCOpticalSample> page, @Param("ew") Wrapper<SCOpticalSample> wrapper, @Param("area") BoundingBox area, @Param("label_id") Long label_id);
+    IPage<SCOpticalSample> listSCOpticalSamples(IPage<SCOpticalSample> page, @Param("ew") Wrapper<SCOpticalSample> wrapper, @Param("area") BoundingBox area, @Param("label_ids") List<Long> label_ids);
 }

@@ -8,21 +8,21 @@ import org.jeecg.boot.starter.rabbitmq.core.BaseRabbiMqHandler;
 import org.jeecg.boot.starter.rabbitmq.listenter.MqListener;
 import org.jeecg.common.annotation.RabbitComponent;
 import org.jeecg.common.util.RedisUtil;
-import org.jeecg.modules.sample.entity.Dataset;
-import org.jeecg.modules.sample.entity.SCOpticalSample;
-import org.jeecg.modules.sample.entity.SampleMetaDTO;
+import org.jeecg.modules.sample.client.CBIRServiceClient;
+import org.jeecg.modules.sample.entity.*;
 import org.jeecg.modules.sample.service.ISampleService;
 import org.jeecg.modules.sample.service.IDataSetService;
-import org.jeecg.modules.sample.util.ProgressWebSocketHandler;
 import org.springframework.amqp.rabbit.annotation.RabbitHandler;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.Header;
 
-import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+
+import static org.jeecg.modules.sample.entity.SampleStatue.*;
 
 /**
  * @program: RSSampleCenter
@@ -39,9 +39,6 @@ public class RabbitMqListener extends BaseRabbiMqHandler<byte[]>{
     private ISampleService sampleService;
     @Autowired
     private IDataSetService dataSetService;
-
-    @Autowired
-    private RedisUtil redisUtil;
     private ObjectMapper objectMapper = new ObjectMapper();
     @RabbitHandler
     public void onMessage(byte[] res, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
@@ -53,19 +50,24 @@ public class RabbitMqListener extends BaseRabbiMqHandler<byte[]>{
                     sampleMetaMap = objectMapper.readValue(new String(message),
                             objectMapper.getTypeFactory().constructMapType(Map.class, Long.class, SampleMetaDTO.class));
                 } catch (JsonProcessingException e) {
+                    System.out.println(e.getMessage());
                     throw new RuntimeException(e);
                 }
-                log.info("业务处理开始，处理返回的样本元数据！");
+                System.out.println("业务处理开始，处理返回的样本元数据！");
                 // 更新样本元数据信息
                 // 更新样本元数据信息
                 Long datasetId = null;
+                List<SCOpticalSample> sampleList = new ArrayList<>();
                 for (Long id : sampleMetaMap.keySet()) {
                     SampleMetaDTO metaDTO = sampleMetaMap.get(id);
                     SCOpticalSample sample = sampleService.getById(id);
+                    if(sample == null){
+                        System.out.println("存在过期数据！id = "+id);
+                    }
                     if(datasetId ==null)datasetId = sample.getDatasetId();
-                    Long labelId = sample.getLabelId();
                     if(sample==null)sample = new SCOpticalSample();
                     if(metaDTO==null)continue;
+                    if(metaDTO.getSampleSize()!=null)
                         sample.setSampleSize(metaDTO.getSampleSize());
                     if(metaDTO.getRes()!=null)
                         sample.setResolution(metaDTO.getRes());
@@ -73,22 +75,19 @@ public class RabbitMqListener extends BaseRabbiMqHandler<byte[]>{
                         sample.setBbox(metaDTO.getBbox());
                     if(metaDTO.getTime()!=null)
                         sample.setTime(metaDTO.getTime());
-                    sampleService.updateById(sample);
+// TODO 设置校验开关，当需要校验在解析同步校验时进行校验
+//                    if(sampleService.validate(sample,SUCCESS))
+//                        sample.setStatue(SUCCESS);
+//                    else{
+//                        if(sampleService.validate(sample,RESOLVED))
+//                            sample.setStatue(RESOLVED);
+//                    }
+                    sample.setStatue(SUCCESS);
+                    sampleList.add(sample);
                 }
-
-                // TODO 缓存数据集实例解析进度
-                Dataset dataset = dataSetService.getById(datasetId);
-                if(dataset != null){
-                    String datasetName = dataset.getDatasetName();
-                    Integer insNum = dataset.getInsNum();
-                    if(!redisUtil.hHasKey("dataset_progress",datasetName))
-                        redisUtil.hset("dataset_progress",datasetName,0,10800);
-                    else
-                        redisUtil.hincr("dataset_progress",datasetName,sampleMetaMap.size());
-
-                    if(!redisUtil.hHasKey("dataset_total",datasetName))
-                        redisUtil.hset("dataset_total",datasetName,insNum,10800);
-                }
+                sampleService.updateBatchById(sampleList);
+                // 数据集已处理样本数量增加
+                dataSetService.increasProcessed(datasetId, sampleList.size());
             }
         });
     }

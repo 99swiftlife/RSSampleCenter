@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import org.jeecg.modules.sample.entity.Dataset;
 import org.jeecg.modules.sample.entity.RSSample;
 import org.jeecg.modules.sample.entity.SCOpticalSample;
+import org.jeecg.modules.sample.entity.SampleStatue;
 
 import java.io.IOException;
 import java.util.List;
@@ -23,4 +24,5 @@ public interface ISampleService extends IService<SCOpticalSample> {
     IPage<SCOpticalSample> listSCOpticalSamples(IPage<SCOpticalSample> page, Map<String,String[]> paramMap, SCOpticalSample rssample);
     List<SCOpticalSample> findByDatasetId(Long datasetId);
     SCOpticalSample findByImgPath(String imgPath);
+    Boolean validate(RSSample sample, SampleStatue st);
 }

@@ -3,7 +3,6 @@ package org.jeecg.modules.sample.service.impl;
 import alluxio.client.file.URIStatus;
 import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.jeecg.boot.starter.rabbitmq.client.RabbitMqClient;
 import org.jeecg.modules.sample.client.CBIRServiceClient;
@@ -20,7 +19,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static javax.management.Query.eq;
+import static org.jeecg.modules.sample.entity.SampleStatue.*;
 
 /**
  * @program: RSSampleCenter
@@ -57,13 +56,14 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
      * 插入标签分类体系，得到类别编码
      */
     @Override
-    public void parseDataset(String path, String datasetName, String imgExt, Map<Integer, Map<String,Integer>> bandInfoMap, Dataset dst, Integer maxLevel) throws IOException {
+    public void parseDataset(String path, Dataset dst) throws IOException {
         // 解析得到数据集标签分 null;类体系
         Map<String,List<String>> edges = new HashMap<>();
         List<SampleDTO> sampleList = new ArrayList<>();
-        getDataSetClassify(path,imgExt,edges,bandInfoMap,dst.getId(),sampleList,maxLevel);
+        getDataSetClassify(path,dst,edges,sampleList);
         if(edges.size()==0 || sampleList.size()==0){
-            System.out.println("找不到数据集目录！");
+            if(dst.getProcessedNum()==0)
+                System.out.println("找不到数据集目录！");
             return ;
         }
 
@@ -80,16 +80,18 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
         }
 
         // TODO 先将初步标签信息（类别ID,类别实例数）写入标签表，此处要注意和rabitmq监听器的冲突(update操作默认更新非空字段）
+        List<LabelCategoryDO>labelDTOs = new ArrayList<>();
         for(Long labelId:labelInsNum.keySet()){
             LabelCategoryDO labelCategoryDO = new LabelCategoryDO();
             labelCategoryDO.setId(labelId);
             labelCategoryDO.setNum(labelInsNum.get(labelId));
+            labelDTOs.add(labelCategoryDO);
         }
+        classifyClient.saveOrUpdateLabelCategory(labelDTOs);
 
         // 返回数据集信息
         dst.setInsNum(sampleList.size());
         dst.setCatNum(edges.keySet().size());
-        return ;
     }
 
 
@@ -119,7 +121,7 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
     // TODO 有多种图像类型：bandinfo不同，如何处理    =>    解决传入全部的bandInfo,根据band num匹配bandInfo
     // TODO 修改引入多线程并发，每解析出1000条数据就传给后特征管理模块提取特征
     // TODO 若要提前提交分类体系要将广度优先修改为深度优先
-    public Boolean getDataSetClassify(String path,String ext,Map<String,List<String>>edges,Map<Integer,Map<String,Integer>> bandInfoMap,Long datasetId,List<SampleDTO> dtos,Integer maxLevel){
+    public Boolean getDataSetClassify(String path, Dataset dst, Map<String,List<String>>edges,List<SampleDTO> dtos){
         Map<String,Long> label2Id = new HashMap<>();
         Boolean flag = false;
         Queue<Node> queue = new PriorityQueue<>();
@@ -129,7 +131,7 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
             Node cur= queue.poll();
             // TODO 若层级已经超过最大层级，认为标签分类体系已解析完毕
             // TODO 超过最大层级改为深度优先遍历以获取样本路径
-            if(maxLevel!=null&&cur.depth>maxLevel){
+            if(dst.getMaxCategoryLevel()!=null&&cur.depth>dst.getMaxCategoryLevel()){
                 queue.clear();
                 break;
             }
@@ -142,8 +144,9 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
                 }
             }
             // 添加标签分类体系
-            if(cur.depth>0 && (maxLevel==null||cur.depth<=maxLevel)){
+            if(cur.depth>0 && (dst.getMaxCategoryLevel()==null||cur.depth<=dst.getMaxCategoryLevel())){
                 String to = cur.path.getName().toLowerCase().replace('_',' ');
+                System.out.println("解析得到标签："+to);
                 if(cur.father.depth>0){
                     String from = cur.father.path.getName().toLowerCase().replace('_',' ');
                     if(!edges.containsKey(from)){
@@ -154,13 +157,14 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
                 if(!edges.containsKey(to)){
                     edges.put(to,new ArrayList<>());
                 }
-                if(cur.depth == maxLevel||hasSubDir==false){
+                if(cur.depth == dst.getMaxCategoryLevel()||hasSubDir==false){
                     leafNodes.add(cur.path);
                 }
             }
         }
         //，分类体系解析完毕，写入标签分类体系
-        label2Id = classifyClient.addClassify(edges);
+        if(edges.size()>0)
+            label2Id = classifyClient.addClassify(edges);
 
         // TODO 从每个具备实例的类目录开始向下深度搜索(多线程），搜索完毕统计类实例数量
         ExecutorService executorService = Executors.newFixedThreadPool(200);
@@ -174,12 +178,12 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
             Future<List<SampleDTO> > future = executorService.submit(() -> {
                 List<SampleDTO>subDtos = new ArrayList<>();
                 System.out.println("Executing Task For Label " + labelId + " in Thread " + Thread.currentThread().getName());
-                getSampleList(leaf,ext,bandInfoMap,datasetId,subDtos,labelId);
+                getSampleList(leaf,dst,subDtos,labelId);
                 if(subDtos.size()%BATCH_SIZE!=0){
                     int r = subDtos.size();
-                    int l = r/BATCH_SIZE*BATCH_SIZE+1;
-                    PairDTO<List<SampleDTO>,Map<Integer,Map<String,Integer>>> params = new PairDTO<>(subDtos.subList(l,r),bandInfoMap);
-                    rabbitMqClient.sendMessage("sample", params.toJson(), 1000);
+                    int l = r/BATCH_SIZE*BATCH_SIZE;
+                    PairDTO<List<SampleDTO>,Map<Integer,Map<String,Integer>>> params = new PairDTO<>(subDtos.subList(l,r),dst.getBandInfo());
+                    rabbitMqClient.sendMessage("sample", params.toBytes(), 1000);
                 }
                 return subDtos;
             });
@@ -211,10 +215,12 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
      * 不会和rabitmq监听器中的更新样本元数据操作冲突，因为对于一个样本元数据项
      * 在本方法中写入后才会提交给特征模块处理，监听器才会收到结果数据
      */
-    public void getSampleList(URIStatus f,String ext,Map<Integer,Map<String,Integer>> bandInfoMap,Long datasetId,List<SampleDTO> dtos,Long labelId){
+    public void getSampleList(URIStatus f,Dataset dst,List<SampleDTO> dtos,Long labelId){
+        String ext = dst.getImgExt();
+        Long datasetId = dst.getId();
         if(f.isFolder()){
             for(URIStatus sub : AlluxioUtils.listStatus(f.getPath())) {
-                getSampleList(sub,ext,bandInfoMap,datasetId,dtos,labelId);
+                getSampleList(sub,dst,dtos,labelId);
             }
         }
         else{
@@ -222,8 +228,12 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
                 // 如果样本已经写入过，则获取已写入的元数据并校验，避免重复写入
                 SCOpticalSample rsSample = scOpticalSampleService.findByImgPath(f.getPath());
                 if(rsSample != null)
-                    if(rsSample.validate() && cbirServiceClient.validateSampleFeature(rsSample.getId()))
-                        return;
+                    if(rsSample.getStatue() == SUCCESS){
+                        dst.addProcessedNum();
+                        return ;
+                    }
+                    else
+                        System.out.printf(String.format("===================================Refine sample : %s===================================", rsSample.getId()));
                 else
                     rsSample =  new SCOpticalSample();
 
@@ -233,22 +243,54 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
                 rsSample.setImgType(ext);
                 // 先写入表获取sampleId
                 scOpticalSampleService.saveOrUpdate(rsSample);
+                // 设置样本状态为初始化/失败
+                if(scOpticalSampleService.validate(rsSample,INIT))
+                    rsSample.setStatue(INIT);
+                else
+                    rsSample.setStatue(FAIL);
+                // 更新样本状态
+                scOpticalSampleService.updateById(rsSample);
                 Long sampleId = rsSample.getId();
                 // 生成初始元数据列表
                 dtos.add(new SampleDTO(sampleId, labelId, f.getPath()));
                 // 以BATCH_SIZE个实例为一个批次提交给rabbitmq
                 if(dtos.size()%BATCH_SIZE==0){
                     int r = dtos.size();
-                    int l = r-BATCH_SIZE+1;
-                    PairDTO<List<SampleDTO>,Map<Integer,Map<String,Integer>>> params = new PairDTO(dtos.subList(l,r),bandInfoMap);
+                    int l = r-BATCH_SIZE;
+                    PairDTO<List<SampleDTO>,Map<Integer,Map<String,Integer>>> params = new PairDTO(dtos.subList(l,r),dst.getBandInfo());
                     try {
-                        rabbitMqClient.sendMessage("sample", params.toJson(), 1000);
+                        System.out.println("========================================Send To Meta Queue!=================================");
+                        rabbitMqClient.sendMessage("sample", params.toBytes(), 1000);
                     }catch(Exception e){
                         e.printStackTrace();
                         System.out.println(e.getMessage());
                     }
                 }
             }
+        }
+    }
+    public void sendBatchToSampleResolver(List<SampleDTO> dtos,Map<Integer,Map<String,Integer>> bandInfoMap){
+        for(int l = 0;l<dtos.size();l+=BATCH_SIZE){
+            int r = l + BATCH_SIZE;
+            if(r > dtos.size())r = dtos.size();
+            PairDTO<List<SampleDTO>,Map<Integer,Map<String,Integer>>> params = new PairDTO(dtos.subList(l,r),bandInfoMap);
+            try {
+                rabbitMqClient.sendMessage("sample", params.toBytes(), 1000);
+            }catch(Exception e){
+                e.printStackTrace();
+                System.out.println(e.getMessage());
+            }
+        }
+    }
+    public synchronized Boolean increasProcessed(Long id, Integer num){
+        try{
+            Dataset dst = getById(id);
+            dst.setProcessedNum(dst.getProcessedNum()+num);
+            updateById(dst);
+            return true;
+        }catch(Exception e){
+            System.out.println(e);
+            return false;
         }
     }
 }

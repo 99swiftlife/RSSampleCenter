@@ -1,15 +1,10 @@
-package org.jeecg.modules.sample.entity;
+package org.jeecg.modules.cbir.entity;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 
 /**
  * @program: RSSampleCenter
@@ -27,9 +22,5 @@ public class PairDTO<T, U>{
         ObjectMapper mapper = new ObjectMapper();
         String json = mapper.writeValueAsString(this);
         return json;
-    }
-    public byte[] toBytes() throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper.writeValueAsBytes(this);
     }
 }

@@ -38,7 +38,7 @@ public class AlluxioUtils {
     // 静态代码块初始化FileSystem
     static{
         AlluxioProperties  properties = new AlluxioProperties();
-        properties.set(PropertyKey.MASTER_HOSTNAME, "10.3.1.15");
+        properties.set(PropertyKey.MASTER_HOSTNAME, "10.3.1.124");
         properties.set(PropertyKey.S3A_ACCESS_KEY,"AKIAVPOIFSUW34PNFTV3");
         properties.set(PropertyKey.S3A_SECRET_KEY,"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");
 //        properties.set(PropertyKey.SECURITY_LOGIN_USERNAME, "ads");

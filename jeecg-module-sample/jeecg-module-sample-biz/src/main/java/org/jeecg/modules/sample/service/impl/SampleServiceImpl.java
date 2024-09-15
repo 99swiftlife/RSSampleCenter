@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 测试Service
@@ -38,6 +39,9 @@ import java.util.concurrent.TimeUnit;
 @Service
 @DS("postgis")
 public class SampleServiceImpl extends ServiceImpl<SCOpticalSampleMapper, SCOpticalSample> implements ISampleService {
+    @Autowired
+    private CBIRServiceClient cbirServiceClient;
+
     @Override
     public String hello() {
         return "hello ，我是 sample 微服务节点!";
@@ -59,12 +63,14 @@ public class SampleServiceImpl extends ServiceImpl<SCOpticalSampleMapper, SCOpti
             }
         }
         // 若存在需要过滤的label_id，则添加过滤条件
-        Long label_id = null;
+        List<Long> labelIds = new ArrayList<>();
         if(paramMap.containsKey("labelId_Filter")){
-            label_id = Long.parseLong(paramMap.get("labelId_Filter")[0]);
+            labelIds = Arrays.stream(paramMap.get("labelId_Filter")[0].split(","))
+                    .map(Long::parseLong) // 将String转换为Long
+                    .collect(Collectors.toList());
         }
         QueryWrapper<SCOpticalSample> queryWrapper = QueryGenerator.initQueryWrapper(rsSample, paramMap);
-        return baseMapper.listSCOpticalSamples(page,queryWrapper,bbox,label_id);
+        return baseMapper.listSCOpticalSamples(page,queryWrapper,bbox,labelIds);
     }
 
     @Override
@@ -72,6 +78,7 @@ public class SampleServiceImpl extends ServiceImpl<SCOpticalSampleMapper, SCOpti
         LambdaQueryWrapper<SCOpticalSample> lambdaQueryWrapper  =new LambdaQueryWrapper<SCOpticalSample>()
                 .eq(SCOpticalSample::getImgPath,imgPath);
         List<SCOpticalSample> res = getBaseMapper().selectList(lambdaQueryWrapper);
+        if(res.size() == 0) return null;
         return res.get(0);
     }
     @Override
@@ -81,5 +88,24 @@ public class SampleServiceImpl extends ServiceImpl<SCOpticalSampleMapper, SCOpti
         List<SCOpticalSample> res = getBaseMapper().selectList(lambdaQueryWrapper);
         return res;
     }
-   
+    @Override
+    public Boolean validate(RSSample sample, SampleStatue st){
+        Boolean flag = true;
+        switch (st){
+            case SUCCESS:
+                flag &= cbirServiceClient.validateSampleFeature(sample.getId());
+            case RESOLVED:
+                flag &= (sample.getResolution() != null &&
+                        sample.getSampleSize() != null);
+            case INIT:
+                flag &= (sample.getId() != null &&
+                        sample.getDatasetId() != null &&
+                        sample.getLabelId() != null &&
+                        sample.getImgType() != null &&
+                        sample.getImgPath() != null);
+            default :
+                break;
+        }
+        return flag;
+    }
 }

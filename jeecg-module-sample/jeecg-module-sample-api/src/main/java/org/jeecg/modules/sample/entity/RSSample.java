@@ -2,7 +2,9 @@ package org.jeecg.modules.sample.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Data
 public abstract class RSSample {
@@ -16,10 +18,8 @@ public abstract class RSSample {
     private String imgPath;
     private String labelPath;
     // 2024/7/8 新增属性：样本解析状态
-    private String status;
+    private SampleStatue statue;
     public abstract byte[] contentFeatureExtract();
     public abstract void loadImage() ;
-    public Boolean validate(){
-        return id != null && datasetId != null && labelId != null && imgType != null && imgPath != null && status != "FINISHED";
-    }
+
 }

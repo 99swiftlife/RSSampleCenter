@@ -16,7 +16,7 @@ public class DatasetDTO {
     private String datasetUrl;
     private String labelPath;
     private String imgExt;
-    private List<String> imgFolder;
+    private List<String> imgFolders;
     // 数据集标签体系的最大层级数：
     private Integer maxCategoryLevel;
     // 传感器类型和平台类型
