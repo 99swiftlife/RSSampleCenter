@@ -10,5 +10,5 @@ import org.jeecg.modules.sample.entity.SCOpticalSample;
 import java.util.List;
 
 public interface SCOpticalSampleMapper extends BaseMapper<SCOpticalSample> {
-    IPage<SCOpticalSample> listSCOpticalSamples(IPage<SCOpticalSample> page, @Param("ew") Wrapper<SCOpticalSample> wrapper, @Param("area") BoundingBox area, @Param("label_ids") List<Long> label_ids);
+    IPage<SCOpticalSample> listSCOpticalSamples(IPage<SCOpticalSample> page, @Param("ew") Wrapper<SCOpticalSample> wrapper, @Param("area") BoundingBox area);
 }

@@ -49,18 +49,21 @@ public class SampleServiceImpl extends ServiceImpl<SCOpticalSampleMapper, SCOpti
 
     @Override
     public IPage<SCOpticalSample> listSCOpticalSamples(IPage<SCOpticalSample> page, Map<String,String[]>paramMap, SCOpticalSample rsSample){
+        // 创建一个可修改的副本
+        Map<String, String[]> mutableParamMap = new HashMap<>(paramMap);
         // 如果存在BoundingBox参数则从请求参数中排除，因为该参数是用于空间查询而非QueryGenerator默认的全限定查询
         BoundingBox bbox = null;
         if(rsSample.getBbox()!=null){
             bbox = new BoundingBox(rsSample.getBbox().getLl(),rsSample.getBbox().getLr(),rsSample.getBbox().getUl(),rsSample.getBbox().getUr());
             rsSample.setBbox(null);
-            Iterator<Map.Entry<String, String[]>> iterator = paramMap.entrySet().iterator();
-            while (iterator.hasNext()) {
-                Map.Entry<String, String[]> entry = iterator.next();
-                if (entry.getKey().contains("bbox")) {
-                    iterator.remove();
-                }
+            Iterator<Map.Entry<String, String[]>> iterator = mutableParamMap.entrySet().iterator();
+            try{
+                // 移除 "bbox" 条目
+                mutableParamMap.entrySet().removeIf(entry -> entry.getKey().contains("bbox"));
+            } catch (Exception e){
+                System.out.println(e);
             }
+
         }
         // 若存在需要过滤的label_id，则添加过滤条件
         List<Long> labelIds = new ArrayList<>();
@@ -69,8 +72,15 @@ public class SampleServiceImpl extends ServiceImpl<SCOpticalSampleMapper, SCOpti
                     .map(Long::parseLong) // 将String转换为Long
                     .collect(Collectors.toList());
         }
-        QueryWrapper<SCOpticalSample> queryWrapper = QueryGenerator.initQueryWrapper(rsSample, paramMap);
-        return baseMapper.listSCOpticalSamples(page,queryWrapper,bbox,labelIds);
+        QueryWrapper<SCOpticalSample> queryWrapper = QueryGenerator.initQueryWrapper(rsSample, mutableParamMap);
+        if(bbox!=null){
+            queryWrapper.apply("ST_Intersects(bbox, #{area,typeHandler=org.jeecg.modules.sample.handler.GeometryTypeHandler})");
+        }
+        if(labelIds.size()>0){
+            queryWrapper.notIn("label_id", labelIds);
+        }
+        System.out.println(queryWrapper.getCustomSqlSegment());
+        return baseMapper.listSCOpticalSamples(page,queryWrapper,bbox);
     }
 
     @Override

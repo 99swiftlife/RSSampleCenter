@@ -175,7 +175,6 @@ public class SampleController {
 		paramMap.remove("labelId_MultiString");
 
 		// 将CBIR检索得到的sampleIds作为in过滤条件
-		System.out.println("labelId_MultiString");
 		List<Long>sampleIds = cbirServiceClient.contentBasedSearch(ids);
 		paramMap.put("id_MultiString",new String[]{sampleIds.stream()
 				.map(String::valueOf) // 将Long转换为String

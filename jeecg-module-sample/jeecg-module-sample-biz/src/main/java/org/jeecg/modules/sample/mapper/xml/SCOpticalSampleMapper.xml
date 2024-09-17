@@ -10,21 +10,21 @@
     <select id="listSCOpticalSamples" resultMap="resultMap">
         SELECT * FROM sc_sample
         ${ew.customSqlSegment}
-        <if test="ew.customSqlSegment == null or ew.customSqlSegment == '' and  area != null ">
-            WHERE
-        </if>
-        <if test="ew.customSqlSegment != null and ew.customSqlSegment != '' and  area != null ">
-            AND
-        </if>
-        <if test="area != null ">
-            AND ST_Intersects(bbox, #{area,typeHandler=org.jeecg.modules.sample.handler.GeometryTypeHandler})
-        </if>
-        <if test="label_ids != null and !label_ids.isEmpty()">
-            AND label_id NOT IN
-            <foreach item="label_id" collection="label_ids" open="(" separator="," close=")">
-                #{label_id}
-            </foreach>
-        </if>
+<!--        <if test="ew.customSqlSegment == null or ew.customSqlSegment == '' and  area != null ">-->
+<!--            WHERE-->
+<!--        </if>-->
+<!--        <if test="ew.customSqlSegment != null and ew.customSqlSegment != '' and  area != null ">-->
+<!--            AND-->
+<!--        </if>-->
+<!--        <if test="area != null ">-->
+<!--            AND ST_Intersects(bbox, #{area,typeHandler=org.jeecg.modules.sample.handler.GeometryTypeHandler})-->
+<!--        </if>-->
+<!--        <if test="label_ids != null and !label_ids.isEmpty()">-->
+<!--            AND label_id NOT IN-->
+<!--            <foreach item="label_id" collection="label_ids" open="(" separator="," close=")">-->
+<!--                #{label_id}-->
+<!--            </foreach>-->
+<!--        </if>-->
     </select>
 
     <!--    select * from rssodsample where ST_Intersects(bbox, ST_GeomFromText('POLYGON((1.0 21.0, 6.0 21.0, 6.0 26.0, 1.0 26.0, 1.0 21.0))',4326));-->
