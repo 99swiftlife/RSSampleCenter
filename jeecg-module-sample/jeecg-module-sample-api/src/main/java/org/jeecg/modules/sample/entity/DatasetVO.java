@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.BeanUtils;
 
+import java.util.List;
+
 /**
  * @program: RSSampleCenter
  * @description: 数据集类视图类
@@ -17,7 +19,7 @@ import org.springframework.beans.BeanUtils;
 @Data
 public class DatasetVO {
     private String datasetName;
-    private Long defaultImageId;
+    private List<Long> randImageIds;
     private String sensor;
     private Integer catNum;
     private Integer insNum;

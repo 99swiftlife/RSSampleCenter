@@ -23,6 +23,7 @@ public interface ISampleService extends IService<SCOpticalSample> {
      */
     IPage<SCOpticalSample> listSCOpticalSamples(IPage<SCOpticalSample> page, Map<String,String[]> paramMap, SCOpticalSample rssample);
     List<SCOpticalSample> findByDatasetId(Long datasetId);
+    List<SCOpticalSample> randSampleByDatasetId(Long datasetId,Long sz);
     SCOpticalSample findByImgPath(String imgPath);
     Boolean validate(RSSample sample, SampleStatue st);
 }

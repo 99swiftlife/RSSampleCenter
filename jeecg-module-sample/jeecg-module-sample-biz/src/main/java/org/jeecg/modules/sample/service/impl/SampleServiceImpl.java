@@ -98,6 +98,17 @@ public class SampleServiceImpl extends ServiceImpl<SCOpticalSampleMapper, SCOpti
         List<SCOpticalSample> res = getBaseMapper().selectList(lambdaQueryWrapper);
         return res;
     }
+
+    @Override
+    public List<SCOpticalSample> randSampleByDatasetId(Long datasetId,Long sz){
+        if(sz==null) {
+            sz=10L;
+        }
+        LambdaQueryWrapper<SCOpticalSample> lambdaQueryWrapper  =new LambdaQueryWrapper<SCOpticalSample>()
+                .eq(SCOpticalSample::getDatasetId,datasetId).last("ORDER BY RANDOM() LIMIT "+sz);
+        List<SCOpticalSample> res = getBaseMapper().selectList(lambdaQueryWrapper);
+        return res;
+    }
     @Override
     public Boolean validate(RSSample sample, SampleStatue st){
         Boolean flag = true;

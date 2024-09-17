@@ -282,8 +282,11 @@ public class SampleController {
 		List<DatasetVO> voData =  new ArrayList<>();
 		for(Dataset record:  page.getRecords()){
 			DatasetVO dstVO = new DatasetVO(record);
-			Long defaulImage = scOpticalSampleService.page(new Page<>(1, 1)).getRecords().get(0).getId();
-			dstVO.setDefaultImageId(defaulImage);
+			List<Long> randIds = scOpticalSampleService.randSampleByDatasetId(record.getId(), 9L)
+					.stream()
+					.map(RSSample::getId)
+					.collect(Collectors.toList());
+			dstVO.setRandImageIds(randIds);
 			voData.add(dstVO);
 		}
 		pageVO.setRecords(voData);
