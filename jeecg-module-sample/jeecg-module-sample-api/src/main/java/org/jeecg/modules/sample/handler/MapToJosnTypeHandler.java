@@ -13,12 +13,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Map;
 
-public class JsonTypeHandler extends BaseTypeHandler<Map<Integer, Map<String, Integer>>> {
+public class MapToJosnTypeHandler<T extends Map> extends BaseTypeHandler<T> {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    public void setNonNullParameter(PreparedStatement ps, int i, Map<Integer, Map<String, Integer>> parameter, JdbcType jdbcType) throws SQLException {
+    public void setNonNullParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException {
         if (parameter == null || parameter.isEmpty()) {
             ps.setObject(i, null);
         } else {
@@ -34,26 +34,26 @@ public class JsonTypeHandler extends BaseTypeHandler<Map<Integer, Map<String, In
     }
 
     @Override
-    public Map<Integer, Map<String, Integer>> getNullableResult(ResultSet rs, String columnName) throws SQLException {
+    public T getNullableResult(ResultSet rs, String columnName) throws SQLException {
         String json = rs.getString(columnName);
         return parseJson(json);
     }
 
     @Override
-    public Map<Integer, Map<String, Integer>> getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
+    public T getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
         String json = rs.getString(columnIndex);
         return parseJson(json);
     }
 
     @Override
-    public Map<Integer, Map<String, Integer>> getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
+    public T getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
         String json = cs.getString(columnIndex);
         return parseJson(json);
     }
 
-    private Map<Integer, Map<String, Integer>> parseJson(String json) throws SQLException {
+    private T parseJson(String json) throws SQLException {
         try {
-            return json == null ? null : objectMapper.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<Map<Integer, Map<String, Integer>>>() {});
+            return json == null ? null : objectMapper.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<T>() {});
         } catch (IOException e) {
             throw new SQLException("Error converting JSON to map", e);
         }

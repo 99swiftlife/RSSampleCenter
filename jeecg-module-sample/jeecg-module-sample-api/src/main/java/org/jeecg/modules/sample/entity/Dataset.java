@@ -10,7 +10,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
-import org.jeecg.modules.sample.handler.JsonTypeHandler;
+import org.jeecg.modules.sample.handler.MapToJosnTypeHandler;
 import org.springframework.beans.BeanUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -48,7 +48,7 @@ public class Dataset {
     private Integer processedNum = 0;
 
     private String datasetUrl;
-    @TableField(value = "band_info",typeHandler = JsonTypeHandler.class)
+    @TableField(value = "band_info",typeHandler = BandInfoTypeHandler.class)
     private Map<Integer, Map<String,Integer>> bandInfo;
     private String labelPath;
     private String metaPath;
@@ -59,7 +59,7 @@ public class Dataset {
     private Integer maxCategoryLevel;
 
     public Boolean validate(){
-        return id !=null && datasetName!=null && catNum!=null && insNum!=null && processedNum!=null && processedNum == insNum ;
+        return id !=null && datasetName!=null && catNum!=null && insNum!=null && processedNum!=null && processedNum.equals(insNum);
     }
     public void copyFromDto(DatasetDTO dto) throws InvocationTargetException, IllegalAccessException {
         BeanUtils.copyProperties(dto,this);
@@ -83,5 +83,7 @@ public class Dataset {
     }
     public void addProcessedNum(){
         processedNum+=1;
+    }
+    public static class BandInfoTypeHandler extends MapToJosnTypeHandler<Map<Integer,Map<String,Integer>>> {
     }
 }

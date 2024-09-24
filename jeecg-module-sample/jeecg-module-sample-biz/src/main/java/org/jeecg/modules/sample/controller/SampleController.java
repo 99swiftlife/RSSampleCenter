@@ -11,6 +11,7 @@ import org.jeecg.modules.sample.client.CBIRServiceClient;
 import org.jeecg.modules.sample.client.ClassifyClient;
 import org.jeecg.modules.sample.entity.*;
 import org.jeecg.modules.sample.service.IDataSetService;
+import org.jeecg.modules.sample.service.IDynamicSetService;
 import org.jeecg.modules.sample.service.ISampleService;
 import org.jeecg.modules.sample.util.AlluxioUtils;
 import org.jeecg.modules.sample.vo.Result;
@@ -39,6 +40,8 @@ public class SampleController {
 	private ClassifyClient classifyClient;
 	@Autowired
 	private IDataSetService dataSetService;
+	@Autowired
+	private IDynamicSetService dynamicSetService;
 	@Autowired
 	private RedisUtil redisUtil;
 
@@ -294,4 +297,11 @@ public class SampleController {
 		result.setResult(pageVO);
 		return result;
 	}
+	@ApiOperation(value = "dynamic dataset create", notes = "创建动态数据集")
+	@PostMapping(value = "/dynamic/create")
+	public boolean createDynamicDataset( @RequestBody DynamicDataset dataset){
+		dynamicSetService.saveOrUpdate(dataset);
+		return true;
+	}
+
 }
