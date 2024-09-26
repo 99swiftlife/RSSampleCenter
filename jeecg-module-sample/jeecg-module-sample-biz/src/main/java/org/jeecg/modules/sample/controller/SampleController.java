@@ -1,5 +1,6 @@
 package org.jeecg.modules.sample.controller;
 
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.annotations.Api;
@@ -300,7 +301,10 @@ public class SampleController {
 	@ApiOperation(value = "dynamic dataset create", notes = "创建动态数据集")
 	@PostMapping(value = "/dynamic/create")
 	public boolean createDynamicDataset( @RequestBody DynamicDataset dataset){
-		dynamicSetService.saveOrUpdate(dataset);
+		// 使用 LambdaUpdateWrapper 来指定更新条件
+		UpdateWrapper<DynamicDataset> updateWrapper = new UpdateWrapper<>();
+		updateWrapper.eq("dataset_name", dataset.getDatasetName()); // 替换为你的唯一列
+		dynamicSetService.saveOrUpdate(dataset,updateWrapper);
 		return true;
 	}
 
