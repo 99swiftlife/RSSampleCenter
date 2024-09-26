@@ -121,10 +121,14 @@ public class ClassifyHelloController {
 		List<LabelCategory>res =  labelRepository.findNodesWithinDistance(id,1.5);
 		for (LabelCategory re : res) {
 			// 排除用作检索条件的标签本身
-			if(re.getId()==id) continue;
+			if(re.getId().equals(id)) {
+				continue;
+			}
 			// 排除实例数为0的类别
 			Integer insNum = labelCategoryService.getById(re.getId()).getNum();
-			if(insNum == 0) continue;
+			if(insNum == 0) {
+				continue;
+			}
 
 			id2Name.put(re.getId(),re.getName());
 		}
@@ -153,8 +157,9 @@ public class ClassifyHelloController {
 				id2Name.put(cur.getId(),cur.getName());
 			}
 		}
-		else
+		else {
 			id2Name.put(category.getId(),category.getName());
+		}
 		// todo>>若都不存在，返回提示不存在该类别
 		Result<Map<Long,String> > result = null;
 		if(id2Name.size()==0){
