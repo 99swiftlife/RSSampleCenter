@@ -210,7 +210,7 @@ public class SampleController {
 		Result<IPage<RSSampleVO>> result = new Result<>();
 		IPage<SCOpticalSample> page = new Page<>(pageNo, pageSize);
 		page = scOpticalSampleService.listSCOpticalSamples(page, paramMap, rsSample);
-		IPage<RSSampleVO> pageVO = new Page<>(pageNo, pageSize);
+		IPage<RSSampleVO> pageVO = new Page<>(pageNo, pageSize, page.getTotal());
 		List<RSSampleVO> voData =  new ArrayList<>();
 		for(RSSample record:  page.getRecords()){
 			LabelCategoryDO label =  classifyClient.getLabelCategoryById(record.getLabelId());
@@ -301,6 +301,24 @@ public class SampleController {
 	@ApiOperation(value = "dynamic dataset create", notes = "创建动态数据集")
 	@PostMapping(value = "/dynamic/create")
 	public Result<Boolean> createDynamicDataset( @RequestBody DynamicDataset dataset){
+		// 使用 LambdaUpdateWrapper 来指定更新条件
+		UpdateWrapper<DynamicDataset> updateWrapper = new UpdateWrapper<>();
+		updateWrapper.eq("dataset_name", dataset.getDatasetName()); // 替换为你的唯一列
+		Boolean res = dynamicSetService.saveOrUpdate(dataset,updateWrapper);
+		Result<Boolean> result = new Result<>();
+		if(res==true){
+			result.setMessage("导入动态样本集成功！");
+			result.setSuccess(true);
+		} else{
+			result.setMessage("导入动态样本集失败！");
+			result.setResult(false);
+		}
+		result.setResult(true);
+		return result;
+	}
+	@ApiOperation(value = "dynamic dataset create", notes = "创建动态数据集")
+	@PostMapping(value = "/dynamic/load")
+	public Result<Boolean> loadDynamicDataset( @RequestBody DynamicDataset dataset){
 		// 使用 LambdaUpdateWrapper 来指定更新条件
 		UpdateWrapper<DynamicDataset> updateWrapper = new UpdateWrapper<>();
 		updateWrapper.eq("dataset_name", dataset.getDatasetName()); // 替换为你的唯一列

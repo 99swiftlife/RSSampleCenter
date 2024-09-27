@@ -79,7 +79,6 @@ public class SampleServiceImpl extends ServiceImpl<SCOpticalSampleMapper, SCOpti
         if(labelIds.size()>0){
             queryWrapper.notIn("label_id", labelIds);
         }
-        System.out.println(queryWrapper.getCustomSqlSegment());
         return baseMapper.listSCOpticalSamples(page,queryWrapper,bbox);
     }
 
