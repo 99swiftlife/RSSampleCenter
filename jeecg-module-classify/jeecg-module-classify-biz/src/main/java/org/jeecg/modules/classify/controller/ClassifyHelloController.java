@@ -114,10 +114,11 @@ public class ClassifyHelloController {
 	 */
 	@ApiOperation(value = "queryShortestPath", notes = "查询最短路")
 	@GetMapping("/shortest-path")
-	public List<HashMap<String, Object>> getShortestPathRelationships(@RequestParam String startNodeName,
+	public Result<List<HashMap<String, Object>>> getShortestPathRelationships(@RequestParam String startNodeName,
 																	  @RequestParam String endNodeName) {
 		// 调用 LabelRepository 接口方法查询最短路径上的关系
-		return labelRepository.findShortestPathByWeight(startNodeName, endNodeName);
+		List<HashMap<String, Object>> result = labelRepository.findShortestPathByWeight(startNodeName, endNodeName);
+		return Result.OK("加载最短路成功！",result);
 	}
 
 	/**根据标签id查找标签体系中意思相近的标签的id*/
