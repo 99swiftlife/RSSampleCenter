@@ -99,10 +99,11 @@ public class ClassifyHelloController {
 		return Result.OK("加载分类体系成功！",result);
 	}
 	@ApiOperation(value = "querySub", notes = "获取标签分类体系的子图")
-	@PostMapping(value = "/sub")
-	Result<List<HashMap<String, Object>>> getSubGraphById(@RequestBody List<String> nameList) {
+	@PostMapping(value = "/query/sub")
+	List<HashMap<String, Object>> getSubGraphById(@RequestBody List<String> nameList) {
+		// todo>>labelRepository中添加获取子图的Cypher绑定语句
 		List<HashMap<String, Object>> result = labelRepository.findSubgraphByNames(nameList);
-		return Result.OK("加载子图成功！",result);
+		return result;
 	}
 
 	/**
