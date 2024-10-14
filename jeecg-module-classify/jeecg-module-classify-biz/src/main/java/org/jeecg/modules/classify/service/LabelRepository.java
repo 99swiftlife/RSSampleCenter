@@ -77,11 +77,13 @@ public interface LabelRepository extends Neo4jRepository<LabelCategory, Long> {
 
     @Query("MATCH (n:Category)-[r]->(m:Category) " +
             "WHERE n.name IN $nameList AND m.name IN $nameList " +
-            "RETURN {\n" +
-            "  start: id(n),\n" +
-            "  end: id(m),\n" +
-            "  type: type(r),\n" +
-            "  weight: r.distWeight\n" +
+            "RETURN { " +
+            "  start: id(n), " +  // 返回起点的 ID
+            "  startName: n.name, " + //返回起点的名称
+            "  end: id(m), " +    // 返回终点的 ID
+            "  endName: m.name, " + //返回终点的名称
+            "  type: type(r), " + // 返回关系类型
+            "  weight: r.distWeight " +  // 返回关系权重
             "} AS relationship")
     List<HashMap<String, Object>> findSubgraphByNames(@Param("nameList") List<String> nameList);
 
