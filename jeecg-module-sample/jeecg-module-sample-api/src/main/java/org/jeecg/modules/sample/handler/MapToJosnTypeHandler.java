@@ -15,7 +15,7 @@ import java.util.Map;
 
 public class MapToJosnTypeHandler<T extends Map> extends BaseTypeHandler<T> {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    protected static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public void setNonNullParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException {
@@ -51,9 +51,10 @@ public class MapToJosnTypeHandler<T extends Map> extends BaseTypeHandler<T> {
         return parseJson(json);
     }
 
-    private T parseJson(String json) throws SQLException {
+    protected T parseJson(String json) throws SQLException {
         try {
-            return json == null ? null : objectMapper.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<T>() {});
+            T res = (json == null ? null : objectMapper.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<T>() {}));
+            return res;
         } catch (IOException e) {
             throw new SQLException("Error converting JSON to map", e);
         }

@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.units.qual.A;
+import org.apache.shiro.dao.DataAccessException;
 import org.jeecg.common.util.RedisUtil;
 import org.jeecg.modules.sample.client.CBIRServiceClient;
 import org.jeecg.modules.sample.client.ClassifyClient;
@@ -17,15 +17,18 @@ import org.jeecg.modules.sample.service.ISampleService;
 import org.jeecg.modules.sample.util.AlluxioUtils;
 import org.jeecg.modules.sample.vo.Result;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import org.apache.commons.beanutils.BeanUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+
+import static java.lang.Math.min;
 
 @Api(tags = "sample示例")
 @RestController
@@ -305,24 +308,64 @@ public class SampleController {
 		UpdateWrapper<DynamicDataset> updateWrapper = new UpdateWrapper<>();
 		updateWrapper.eq("dataset_name", dataset.getDatasetName()); // 替换为你的唯一列
 		Boolean res = dynamicSetService.saveOrUpdate(dataset,updateWrapper);
-		Result<Boolean> result = new Result<>();
-		if(res==true){
-			result.setMessage("导入动态样本集成功！");
-			result.setSuccess(true);
-		} else{
-			result.setMessage("导入动态样本集失败！");
-			result.setResult(false);
-		}
-		result.setResult(true);
-		return result;
+		return getBooleanResult(res);
 	}
-	@ApiOperation(value = "dynamic dataset create", notes = "创建动态数据集")
+	@ApiOperation(value = "dynamic dataset load", notes = "加载动态数据集")
 	@PostMapping(value = "/dynamic/load")
 	public Result<Boolean> loadDynamicDataset( @RequestBody DynamicDataset dataset){
 		// 使用 LambdaUpdateWrapper 来指定更新条件
 		UpdateWrapper<DynamicDataset> updateWrapper = new UpdateWrapper<>();
 		updateWrapper.eq("dataset_name", dataset.getDatasetName()); // 替换为你的唯一列
 		Boolean res = dynamicSetService.saveOrUpdate(dataset,updateWrapper);
+		return getBooleanResult(res);
+	}
+
+	@ApiOperation(value = "dynamic dataset dump", notes = "准确样本批量写入动态数据集")
+	@PostMapping(value = "/dynamic/dump")
+	public Result<Boolean> batchDumpDynamicDataset(SCOpticalSample rsSample,
+												   @RequestParam(name="dyId") Long datasetId,
+												   @RequestParam(name="limit", defaultValue = "-1") Long limit,
+												   HttpServletRequest req){
+		if(limit.equals(-1L)){
+			limit = Long.MAX_VALUE;
+		}
+		DynamicDataset dynamicDst = dynamicSetService.getById(datasetId);
+		ConcurrentHashMap<Long,List<Long>> insMap = dynamicDst.getInsMap();
+		// 多线程检索符合条件的准确样本
+		Map<String,String[]> mp = req.getParameterMap();
+		List<Long> ids = Arrays.stream(mp.get("labelId_MultiString")[0].split(","))
+				.map(Long::parseLong)
+				.collect(Collectors.toList());
+		for(Long key:ids){
+			Map<String,String[]> curMap = new HashMap<>(mp);
+			curMap.remove("labelId_MultiString");
+			curMap.put("labelId", new String[]{key.toString()});
+			rsSample.setLabelId(key);
+			Long total = min(getiPageResult(rsSample,1,0, curMap).getResult().getTotal(), limit);
+			int pgNo = 0;
+			while(pgNo*500<total){
+				System.out.println(String.format("Key: %d , Total: %d , CNT: %d", key,total,pgNo*500));
+				pgNo++;
+				int finalPgNo = pgNo;
+				IPage<RSSampleVO> pageRes = getiPageResult(rsSample, finalPgNo,500, curMap).getResult();
+				List<Long>value = pageRes.getRecords().stream().map(RSSampleVO::getId).collect(Collectors.toList());
+				if(!insMap.containsKey(key)){
+					insMap.put(key,value);
+				} else{
+					insMap.get(key).addAll(value);
+//					// TODO 去重
+//					list = list.stream().distinct().collect(Collectors.toList());
+				}
+			}
+		}
+		// 批量写入动态数据集
+		dynamicDst.setInsMap(insMap);
+		Boolean res = dynamicSetService.updateById(dynamicDst);
+		return getBooleanResult(res);
+	}
+
+	@NotNull
+	private Result<Boolean> getBooleanResult(Boolean res) {
 		Result<Boolean> result = new Result<>();
 		if(res==true){
 			result.setMessage("导入动态样本集成功！");

@@ -98,11 +98,26 @@ public class ClassifyHelloController {
 		PairDTO<Map<Long,String>,List<HashMap<String, Object>>> result = new PairDTO<>(id2Name,relates);
 		return Result.OK("加载分类体系成功！",result);
 	}
-
-	@GetMapping(value = { "query sub graph", "/query/sub/" })
-	List<LabelCategory> getSubGraphById(@RequestParam("ids") Integer[] ids) {
+	@ApiOperation(value = "querySub", notes = "获取标签分类体系的子图")
+	@PostMapping(value = { "query sub graph", "/query/sub/" })
+	Result<List<HashMap<String, Object>>> getSubGraphById(@RequestBody List<String> nameList) {
 		// todo>>labelRepository中添加获取子图的Cypher绑定语句
-		return labelRepository.findAll();
+		List<HashMap<String, Object>> result = labelRepository.findSubgraphByNames(nameList);
+		return Result.OK("加载子图成功！",result);
+	}
+
+	/**
+	 * 根据起始节点和终点节点，查询它们之间最短路径上的所有关联关系
+	 * @param startNodeName 起始节点名称
+	 * @param endNodeName 终点节点名称
+	 * @return 最短路径上的关系集合
+	 */
+	@ApiOperation(value = "queryShortestPath", notes = "查询最短路")
+	@GetMapping("/shortest-path")
+	public List<HashMap<String, Object>> getShortestPathRelationships(@RequestParam String startNodeName,
+																	  @RequestParam String endNodeName) {
+		// 调用 LabelRepository 接口方法查询最短路径上的关系
+		return labelRepository.findShortestPathByWeight(startNodeName, endNodeName);
 	}
 
 	/**根据标签id查找标签体系中意思相近的标签的id*/

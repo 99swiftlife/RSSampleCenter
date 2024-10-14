@@ -57,7 +57,7 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
      */
     @Override
     public void parseDataset(String path, Dataset dst) throws IOException {
-        // 解析得到数据集标签分 null;类体系
+        // 解析得到数据集标签分类体系
         Map<String,List<String>> edges = new HashMap<>();
         List<SampleDTO> sampleList = new ArrayList<>();
         getDataSetClassify(path,dst,edges,sampleList);

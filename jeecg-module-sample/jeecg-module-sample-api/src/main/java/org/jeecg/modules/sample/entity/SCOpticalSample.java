@@ -35,4 +35,5 @@ public class SCOpticalSample extends RSSample{
     public void loadImage() {
 
     }
+
 }

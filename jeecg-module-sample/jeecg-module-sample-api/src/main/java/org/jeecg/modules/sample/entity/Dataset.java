@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.swagger.annotations.ApiModel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,10 +14,13 @@ import lombok.experimental.Accessors;
 import org.jeecg.modules.sample.handler.MapToJosnTypeHandler;
 import org.springframework.beans.BeanUtils;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @program: RSSampleCenter
@@ -85,5 +89,14 @@ public class Dataset {
         processedNum+=1;
     }
     public static class BandInfoTypeHandler extends MapToJosnTypeHandler<Map<Integer,Map<String,Integer>>> {
+        @Override
+        protected Map<Integer,Map<String,Integer>> parseJson(String json) throws SQLException {
+            try {
+                Map<Integer,Map<String,Integer>>  res = (json == null ? null : objectMapper.readValue(json, new TypeReference<Map<Integer,Map<String,Integer>> >() {}));
+                return res;
+            } catch (IOException e) {
+                throw new SQLException("Error converting JSON to map", e);
+            }
+        }
     }
 }

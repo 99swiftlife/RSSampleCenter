@@ -56,6 +56,10 @@ public class RabbitMQListener extends BaseRabbiMqHandler<byte[]>{
                 List<LabelCategoryDO>labelList = new ArrayList<>();
                 for(Map.Entry<Long, Integer> item :msg.entrySet()){
                     LabelCategoryDO label = labelCategoryService.findById(item.getKey());
+                    // 过滤无效的标签
+                    if(label == null){
+                        continue;
+                    }
                     int unsolvedNum = label.getUnsolvedNum() + item.getValue();
                     // 若未参与聚类的样本实例到达一定阈值则更新特征聚类中心
                     if((double)unsolvedNum / label.getNum() > THRESHOLD){
