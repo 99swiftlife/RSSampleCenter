@@ -162,6 +162,8 @@ public class ClassifyHelloController {
 	@ApiOperation(value = "queryByName", notes = "标签分类体系根据标签名检索接口")
 	@GetMapping(value = "/query/{name}")
 	Result<Map<Long,String>> getLabelIdsByName(@PathVariable(value = "name")String name) {
+		// 预处理name
+		name = name.toLowerCase().replace('_',' ');
 		Map<Long,String> id2Name = new HashMap<>();
 		// 先根据名称直接从分类体系中检索
 		LabelCategory category =  labelRepository.findByName(name);
