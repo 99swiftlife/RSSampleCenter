@@ -8,6 +8,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 import org.jeecg.modules.sample.handler.GeometryTypeHandler;
+import org.jeecg.modules.sample.handler.LongSetTypeHandler;
+
+import java.util.Set;
 
 /**
  * @program: RSSampleCenter

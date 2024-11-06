@@ -73,10 +73,13 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
         // 统计此数据集中每个类别的实例数量
         for (SampleDTO s : sampleList) {
             // 获取样本对应的类别id
-            Long labelId = s.getCategoryId();
-            // 统计标签类别的新增样本实例数
-            if(labelInsNum.get(labelId)==null)labelInsNum.put(labelId,0);
-            labelInsNum.put(labelId,labelInsNum.get(labelId)+1);
+            for(Long labelId : s.getCategoryId()){
+                // 统计标签类别的新增样本实例数
+                if(labelInsNum.get(labelId)==null) {
+                    labelInsNum.put(labelId,0);
+                }
+                labelInsNum.put(labelId,labelInsNum.get(labelId)+1);
+            }
         }
 
         // TODO 先将初步标签信息（类别ID,类别实例数）写入标签表，此处要注意和rabitmq监听器的冲突(update操作默认更新非空字段）
@@ -157,7 +160,7 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
                 if(!edges.containsKey(to)){
                     edges.put(to,new ArrayList<>());
                 }
-                if(cur.depth == dst.getMaxCategoryLevel()||hasSubDir==false){
+                if(cur.depth.equals(dst.getMaxCategoryLevel()) ||hasSubDir==false){
                     leafNodes.add(cur.path);
                 }
             }
@@ -239,7 +242,7 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
 
                 rsSample.setDatasetId(datasetId);
                 rsSample.setImgPath(f.getPath());
-                rsSample.setLabelId(labelId);
+                rsSample.setLabelId(new HashSet<>(Collections.singleton(labelId)));
                 rsSample.setImgType(ext);
                 // 先写入表获取sampleId
                 scOpticalSampleService.saveOrUpdate(rsSample);
@@ -252,7 +255,7 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
                 scOpticalSampleService.updateById(rsSample);
                 Long sampleId = rsSample.getId();
                 // 生成初始元数据列表
-                dtos.add(new SampleDTO(sampleId, labelId, f.getPath()));
+                dtos.add(new SampleDTO(sampleId, new HashSet<>(Collections.singleton(labelId)), f.getPath()));
                 // 以BATCH_SIZE个实例为一个批次提交给rabbitmq
                 if(dtos.size()%BATCH_SIZE==0){
                     int r = dtos.size();

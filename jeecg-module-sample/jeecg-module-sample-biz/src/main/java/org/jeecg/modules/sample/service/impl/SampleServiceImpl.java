@@ -78,7 +78,11 @@ public class SampleServiceImpl extends ServiceImpl<SCOpticalSampleMapper, SCOpti
             queryWrapper.apply("ST_Intersects(bbox, #{area,typeHandler=org.jeecg.modules.sample.handler.GeometryTypeHandler})");
         }
         if(labelIds.size()>0){
-            queryWrapper.notIn("label_id", labelIds);
+//            queryWrapper.notIn("label_id", labelIds);
+            String excludedValues = "ARRAY[" + paramMap.get("labelId_Filter")[0] + "]::bigint[]";
+// 直接拼接 SQL 语句
+            queryWrapper.apply("NOT (array_length(label_id, 1) = 1 AND label_id[1] = ANY(" + excludedValues + "))");
+
         }
         return baseMapper.listSCOpticalSamples(page,queryWrapper,bbox);
     }

@@ -101,4 +101,15 @@ public interface LabelRepository extends Neo4jRepository<LabelCategory, Long> {
                                                            @Param("endNodeName") String endNodeName);
 
 
+    @Query("MATCH (n:Category)-[r:SYNONYM]->(m:Category) " +
+            "RETURN { " +
+            "  start: id(n), " +  // 返回起点的 ID
+            "  startName: n.name, " + // 返回起点的名称
+            "  end: id(m), " +    // 返回终点的 ID
+            "  endName: m.name, " + // 返回终点的名称
+            "  type: type(r), " + // 返回关系类型，应该为SYNONYM
+            "  weight: r.distWeight " +  // 返回关系权重
+            "} AS relationship")
+    List<HashMap<String, Object>> findAllSynonymRelationships();
+
 }

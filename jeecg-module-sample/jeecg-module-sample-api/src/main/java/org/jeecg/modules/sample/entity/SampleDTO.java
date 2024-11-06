@@ -3,6 +3,8 @@ package org.jeecg.modules.sample.entity;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
+import java.util.Set;
+
 /**
  * @program: RSSampleCenter
  * @description: 样本数据数据传输对象
@@ -13,7 +15,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class SampleDTO {
     private Long sampleId;
-    private Long categoryId;
+    private Set<Long> categoryId;
     private String imgPath;
     // private Integer sampleSize;
     // private BoundingBox bbox;

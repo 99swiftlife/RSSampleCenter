@@ -98,6 +98,12 @@ public class ClassifyHelloController {
 		PairDTO<Map<Long,String>,List<HashMap<String, Object>>> result = new PairDTO<>(id2Name,relates);
 		return Result.OK("加载分类体系成功！",result);
 	}
+	@ApiOperation(value = "querySynonym", notes = "获取所有相似关系")
+	@GetMapping("/query/synonym")
+	public List<HashMap<String, Object>> getSynonymRelationships() {
+		List<HashMap<String, Object>> relationships = labelRepository.findAllSynonymRelationships();
+		return relationships;
+	}
 	@ApiOperation(value = "querySub", notes = "获取标签分类体系的子图")
 	@GetMapping(value = "/query/sub")
 	Result<List<HashMap<String, Object>>> getSubGraphById(@RequestParam List<String> nameList) {

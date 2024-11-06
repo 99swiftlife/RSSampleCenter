@@ -6,6 +6,7 @@
 <mapper namespace="org.jeecg.modules.sample.mapper.SCOpticalSampleMapper">
     <resultMap id="resultMap" type="org.jeecg.modules.sample.entity.SCOpticalSample">
         <result column="bbox" property="bbox" typeHandler="org.jeecg.modules.sample.handler.GeometryTypeHandler"/>
+        <result column="label_id" property="labelId" typeHandler="org.jeecg.modules.sample.handler.LongSetTypeHandler"/>
     </resultMap>
     <select id="listSCOpticalSamples" resultMap="resultMap">
         SELECT * FROM sc_sample

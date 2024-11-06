@@ -18,6 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 @Data
 public class DatasetVO {
+    private Long id;
     private String datasetName;
     private List<Long> randImageIds;
     private String sensor;

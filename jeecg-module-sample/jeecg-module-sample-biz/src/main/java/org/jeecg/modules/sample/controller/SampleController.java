@@ -20,8 +20,12 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
@@ -216,11 +220,14 @@ public class SampleController {
 		IPage<RSSampleVO> pageVO = new Page<>(pageNo, pageSize, page.getTotal());
 		List<RSSampleVO> voData =  new ArrayList<>();
 		for(RSSample record:  page.getRecords()){
-			LabelCategoryDO label =  classifyClient.getLabelCategoryById(record.getLabelId());
+			List<String>labelNames = new ArrayList<>();
+			for(Long labelId:record.getLabelId()){
+				labelNames.add(classifyClient.getLabelCategoryById(labelId).getName());
+			}
 			Dataset dataset = dataSetService.getById(record.getDatasetId());
 			RSSampleVO rsVO = new RSSampleVO(record);
 			rsVO.setDatasetName(dataset.getDatasetName());
-			rsVO.setLabelName(label.getName());
+			rsVO.setLabelName(String.join(",", labelNames));
 			voData.add(rsVO);
 		}
 		pageVO.setRecords(voData);
@@ -340,7 +347,7 @@ public class SampleController {
 			Map<String,String[]> curMap = new HashMap<>(mp);
 			curMap.remove("labelId_MultiString");
 			curMap.put("labelId", new String[]{key.toString()});
-			rsSample.setLabelId(key);
+			rsSample.setLabelId(new HashSet<>(Collections.singleton(key)));
 			Long total = min(getiPageResult(rsSample,1,0, curMap).getResult().getTotal(), limit);
 			int pgNo = 0;
 			while(pgNo*500<total){
@@ -362,6 +369,54 @@ public class SampleController {
 		dynamicDst.setInsMap(insMap);
 		Boolean res = dynamicSetService.updateById(dynamicDst);
 		return getBooleanResult(res);
+	}
+
+	@ApiOperation(value = "label csv upload", notes = "上传标签csv文件")
+	@PostMapping("/csv")
+	public Result<Boolean> uploadCsvFormatLabel(@RequestParam("file") MultipartFile file,
+												@RequestParam(name="id") Long datasetId) {
+		Map<String, List<String>> sample2Label = new HashMap<>();
+		Map<String, List<Long>> sample2LabelIds = new HashMap<>();
+		Map<String, List<String>> newClassify = new HashMap<>();
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				String[] columns = line.split(",");
+
+				if (columns.length > 0) {
+					String sampleName = columns[0];
+					List<String> tags = Arrays.stream(columns)
+							.skip(1)  // Skip the first column (sample name)
+							.filter(tag -> tag != null && !tag.trim().isEmpty()) // Filter out empty or null tags
+							.collect(Collectors.toList());
+					for (String tag:tags) {
+						newClassify.put(tag,new ArrayList<>());
+					}
+					sample2Label.put(sampleName, tags);
+				}
+			}
+			Map<String,Long> label2Id = classifyClient.addClassify(newClassify);
+			for(String key : sample2Label.keySet()){
+				List<Long>labelIds = new ArrayList<>();
+				for(String tag:sample2Label.get(key)){
+					labelIds.add(label2Id.get(tag));
+				}
+				sample2LabelIds.put(key,labelIds);
+			}
+			List<SCOpticalSample> samples = scOpticalSampleService.findByDatasetId(datasetId);
+			for(SCOpticalSample sample:samples){
+				Path path = Paths.get(sample.getImgPath());
+				String fileName = path.getFileName().toString();
+				int lastDotIndex = fileName.lastIndexOf(".");
+				String sampleName = (lastDotIndex == -1) ? fileName : fileName.substring(0, lastDotIndex);
+				sample.getLabelId().addAll(sample2LabelIds.get(sampleName));
+			}
+			scOpticalSampleService.updateBatchById(samples);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("Error parsing CSV file");
+		}
+		return getBooleanResult(true);
 	}
 
 	@NotNull
