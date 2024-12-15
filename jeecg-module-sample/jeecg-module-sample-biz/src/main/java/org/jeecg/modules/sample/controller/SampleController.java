@@ -14,6 +14,7 @@ import org.jeecg.modules.sample.entity.*;
 import org.jeecg.modules.sample.service.IDataSetService;
 import org.jeecg.modules.sample.service.IDynamicSetService;
 import org.jeecg.modules.sample.service.ISampleService;
+import org.jeecg.modules.sample.task.QuartzService;
 import org.jeecg.modules.sample.util.AlluxioUtils;
 import org.jeecg.modules.sample.vo.Result;
 import org.jetbrains.annotations.NotNull;
@@ -52,6 +53,8 @@ public class SampleController {
 	private IDynamicSetService dynamicSetService;
 	@Autowired
 	private RedisUtil redisUtil;
+	@Autowired
+	private QuartzService quartzService;
 
 	@ApiOperation(value = "hello", notes = "对外服务接口")
 	@GetMapping(value = "/hello")
@@ -112,6 +115,9 @@ public class SampleController {
 					return org.jeecg.common.api.vo.Result.OK("数据集已在样本库中！",datasets.get(0));
 				}
 			}
+			if(datasetDTO.getLabelPath()==null && datasetDTO.getImgFolders()==null){
+				datasetDTO.setImgFolders(Arrays.asList(""));
+			}
 			dst.copyFromDto(datasetDTO);
 			// TODO 解析数据集位置（本地、HDFS、AWS、Google),根据不同位置调用对应的数据获取方法
 			String dataSetUrl = datasetDTO.getDatasetUrl();
@@ -129,30 +135,8 @@ public class SampleController {
 			dst.setProcessedNum(0);
 			dataSetService.saveOrUpdate(dst);
 
-
-			// TODO 修改以兼容样本集细分为train/val/test的数据集
-			/**
-			 * 数据集解析形式，暂时支持两种形式：
-			 * 1、样本所在目录名为标签类型的树形结构形式
-			 * 2、包含单独存储的的标签文件，存储样本名到标签的映射
-			 **/
-			// 获取样本集的标签存储类型
-			String labelPath = datasetDTO.getLabelPath();
-			if(labelPath == null){
-				if(datasetDTO.getImgFolders()==null){
-					datasetDTO.setImgFolders(Arrays.asList(""));
-				}
-				for(String folder: datasetDTO.getImgFolders()){
-					String datasetImgFolder = Paths.get(alluxioPath,folder).toString();
-					dataSetService.parseDataset(datasetImgFolder,dst);
-				}
-			}
-			// 记录数据集信息，写入数据集表
-			if(dst.getProcessedNum()>0){
-				dataSetService.increasProcessed(dst.getId(),dst.getProcessedNum());
-				dst.setProcessedNum(null);
-			}
-			dataSetService.saveOrUpdate(dst);
+			// 创建数据集集成任务
+			quartzService.startTask(dst.getDatasetName(),dst);
 		}catch (Exception e){
 			e.printStackTrace();
 			return org.jeecg.common.api.vo.Result.error("数据集解析错误！"+e.getMessage(),dst);
@@ -351,7 +335,7 @@ public class SampleController {
 			Long total = min(getiPageResult(rsSample,1,0, curMap).getResult().getTotal(), limit);
 			int pgNo = 0;
 			while(pgNo*500<total){
-				System.out.println(String.format("Key: %d , Total: %d , CNT: %d", key,total,pgNo*500));
+//				System.out.println(String.format("Key: %d , Total: %d , CNT: %d", key,total,pgNo*500));
 				pgNo++;
 				int finalPgNo = pgNo;
 				IPage<RSSampleVO> pageRes = getiPageResult(rsSample, finalPgNo,500, curMap).getResult();

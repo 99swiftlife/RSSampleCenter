@@ -12,7 +12,9 @@ import org.jeecg.modules.sample.mapper.DataSetMapper;
 import org.jeecg.modules.sample.service.IDataSetService;
 import org.jeecg.modules.sample.service.ISampleService;
 import org.jeecg.modules.sample.util.AlluxioUtils;
+import org.jeecg.modules.sample.util.ProgressWebSocket;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -62,8 +64,9 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
         List<SampleDTO> sampleList = new ArrayList<>();
         getDataSetClassify(path,dst,edges,sampleList);
         if(edges.size()==0 || sampleList.size()==0){
-            if(dst.getProcessedNum()==0)
+            if(dst.getProcessedNum()==0){
                 System.out.println("找不到数据集目录！");
+            }
             return ;
         }
 
@@ -290,6 +293,9 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
             Dataset dst = getById(id);
             dst.setProcessedNum(dst.getProcessedNum()+num);
             updateById(dst);
+            double progress = dst.getProcessedNum()/dst.getInsNum();
+            // 广播数据集解析进度
+            ProgressWebSocket.sendProgress(dst.getDatasetName(),progress);
             return true;
         }catch(Exception e){
             System.out.println(e);

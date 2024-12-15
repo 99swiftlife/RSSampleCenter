@@ -19,6 +19,10 @@ import alluxio.client.file.FileInStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.utils.IOUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.EnvironmentAware;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Component;
 
 import java.io.*;
 import java.nio.file.Path;
@@ -32,15 +36,23 @@ import java.util.List;
  * @author: swiftlife
  * @create: 2024-03-24 13:31
  **/
-public class AlluxioUtils {
+@Component
+public class AlluxioUtils{
     // 获取文件系统FileSystem
     private static FileSystem fs;
+
     // 静态代码块初始化FileSystem
     static{
         AlluxioProperties  properties = new AlluxioProperties();
-        properties.set(PropertyKey.MASTER_HOSTNAME, "10.3.1.124");
-        properties.set(PropertyKey.S3A_ACCESS_KEY,"AKIAVPOIFSUW34PNFTV3");
-        properties.set(PropertyKey.S3A_SECRET_KEY,"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");
+        properties.set(PropertyKey.MASTER_HOSTNAME, "10.3.1.15");
+        String awsAccessKey = System.getenv("AWS_ACCESS_KEY");
+        String awsSecretKey = System.getenv("AWS_SECRET_KEY");
+        if(awsAccessKey!=null){
+            properties.set(PropertyKey.S3A_ACCESS_KEY, System.getenv("AWS_ACCESS_KEY"));
+        }
+        if(awsSecretKey!=null){
+            properties.set(PropertyKey.S3A_SECRET_KEY,System.getenv("AWS_SECRET_KEY"));
+        }
 //        properties.set(PropertyKey.SECURITY_LOGIN_USERNAME, "ads");
         AlluxioConfiguration configurations = new InstancedConfiguration(properties);
         fs = FileSystem.Factory.create(configurations);
