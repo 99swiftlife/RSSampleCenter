@@ -5,7 +5,7 @@ import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.util.concurrent.ConcurrentHashMap;
 
-@ServerEndpoint("/tasks/progress/{taskId}")
+@ServerEndpoint("/websocket/progress/{taskId}")
 public class ProgressWebSocket {
 
     // ConcurrentHashMap 用于存储 taskId 对应的 WebSocket 会话
