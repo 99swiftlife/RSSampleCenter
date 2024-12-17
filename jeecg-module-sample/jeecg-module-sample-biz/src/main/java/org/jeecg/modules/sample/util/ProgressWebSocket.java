@@ -1,10 +1,12 @@
 package org.jeecg.modules.sample.util;
 
+import lombok.extern.slf4j.Slf4j;
+
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.util.concurrent.ConcurrentHashMap;
-
+@Slf4j
 @ServerEndpoint("/websocket/progress/{taskId}")
 public class ProgressWebSocket {
 
@@ -21,20 +23,20 @@ public class ProgressWebSocket {
 
         // 将当前 WebSocket 会话存入 ConcurrentHashMap
         taskSessions.put(taskId, session);
-        System.out.println("WebSocket opened for taskId: " + taskId + ", Session ID: " + session.getId());
+        log.info("WebSocket opened for taskId: " + taskId + ", Session ID: " + session.getId());
     }
 
     @OnMessage
     public void onMessage(String message) {
         // 处理来自客户端的消息
-        System.out.println("Received message for taskId: " + taskId + " - " + message);
+        log.info("Received message for taskId: " + taskId + " - " + message);
     }
 
     @OnClose
     public void onClose() {
         // WebSocket 连接关闭时，移除 taskId 对应的 session
         taskSessions.remove(taskId);
-        System.out.println("WebSocket closed for taskId: " + taskId + ", Session ID: " + session.getId());
+        log.info("WebSocket closed for taskId: " + taskId + ", Session ID: " + session.getId());
     }
 
     @OnError
