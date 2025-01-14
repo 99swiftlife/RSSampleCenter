@@ -68,21 +68,31 @@ public class SampleServiceImpl extends ServiceImpl<SCOpticalSampleMapper, SCOpti
         }
         // 若存在需要过滤的label_id，则添加过滤条件
         List<Long> labelIds = new ArrayList<>();
-        if(paramMap.containsKey("labelId_Filter")){
-            labelIds = Arrays.stream(paramMap.get("labelId_Filter")[0].split(","))
-                    .map(Long::parseLong) // 将String转换为Long
-                    .collect(Collectors.toList());
-        }
         QueryWrapper<SCOpticalSample> queryWrapper = QueryGenerator.initQueryWrapper(rsSample, mutableParamMap);
         if(bbox!=null){
             queryWrapper.apply("ST_Intersects(bbox, #{area,typeHandler=org.jeecg.modules.sample.handler.GeometryTypeHandler})");
         }
-        if(labelIds.size()>0){
+        if(paramMap.containsKey("labelId_Filter")){
+            labelIds = Arrays.stream(paramMap.get("labelId_Filter")[0].split(","))
+                    .map(Long::parseLong) // 将String转换为Long
+                    .collect(Collectors.toList());
+            if(labelIds.size()>0){
 //            queryWrapper.notIn("label_id", labelIds);
-            String excludedValues = "ARRAY[" + paramMap.get("labelId_Filter")[0] + "]::bigint[]";
+                String excludedValues = "ARRAY[" + paramMap.get("labelId_Filter")[0] + "]::bigint[]";
 // 直接拼接 SQL 语句
-            queryWrapper.apply("NOT (array_length(label_id, 1) = 1 AND label_id[1] = ANY(" + excludedValues + "))");
+                queryWrapper.apply("NOT (array_length(label_id, 1) = 1 AND label_id[1] = ANY(" + excludedValues + "))");
 
+            }
+        }
+        if(paramMap.containsKey("labelId_MultiStr")){
+            labelIds = Arrays.stream(paramMap.get("labelId_MultiStr")[0].split(","))
+                    .map(Long::parseLong) // 将String转换为Long
+                    .collect(Collectors.toList());
+            if(labelIds.size()>0){
+                for(Long labelId:labelIds){
+                    queryWrapper.apply(labelId + " = ANY(label_id)");
+                }
+            }
         }
         return baseMapper.listSCOpticalSamples(page,queryWrapper,bbox);
     }

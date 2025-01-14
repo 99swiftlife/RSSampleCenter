@@ -1,12 +1,15 @@
 package org.jeecg.modules.sample.util;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jeecg.modules.sample.entity.PairDTO;
+import org.springframework.stereotype.Component;
 
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
+@Component
 @ServerEndpoint("/websocket/progress/{taskId}")
 public class ProgressWebSocket {
 
@@ -45,17 +48,23 @@ public class ProgressWebSocket {
         error.printStackTrace();
     }
 
-    public static void sendProgress(String taskId, Double progress) {
-        // 获取对应 taskId 的 WebSocket 会话
-        Session session = taskSessions.get(taskId);
-        if (session != null && session.isOpen()) {
-            try {
-                // 发送消息
-                session.getBasicRemote().sendObject(progress);
-            } catch (Exception e) {
-                e.printStackTrace();
+    public static void broadcastProgress(String dstName, Double progress) {
+        PairDTO<String, Double> msg = new PairDTO<>(dstName, progress);
+
+        for (String id : taskSessions.keySet()) {
+            Session session = taskSessions.get(id);
+            if (session != null && session.isOpen()) {
+                session.getAsyncRemote().sendObject(msg, result -> {
+                    if (result.isOK()) {
+                        log.info("消息发送成功，目标: " + id + ", 数据集: " + dstName + ", 进度: " + progress);
+                    } else {
+                        log.error("消息发送失败，Session ID: " + session.getId(), result.getException());
+                    }
+                });
             }
         }
     }
+
+
 }
 

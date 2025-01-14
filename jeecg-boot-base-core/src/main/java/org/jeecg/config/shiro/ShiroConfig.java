@@ -78,7 +78,7 @@ public class ShiroConfig {
         // 配置不会被拦截的链接 顺序判断
         filterChainDefinitionMap.put("/sample/**", "anon"); //样本服务模块排除（后续修正）
         filterChainDefinitionMap.put("/classify/**", "anon"); //样本分类模块排除（后续修正）
-        filterChainDefinitionMap.put("/tasks/progress/**", "anon"); //任务进度监控WebSocket
+        filterChainDefinitionMap.put("/tasks/**", "anon"); //任务进度监控WebSocket
 
         filterChainDefinitionMap.put("/sys/cas/client/validateLogin", "anon"); //cas验证登录
         filterChainDefinitionMap.put("/sys/randomImage/**", "anon"); //登录验证码接口排除

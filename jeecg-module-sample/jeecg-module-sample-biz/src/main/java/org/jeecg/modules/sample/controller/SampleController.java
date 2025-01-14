@@ -75,7 +75,14 @@ public class SampleController {
 												@RequestParam(name="pageSize", defaultValue="10") Integer pageSize,
 												HttpServletRequest req) throws NoSuchFieldException, IllegalAccessException {
 		log.info(" ---查询样本信息--- ");
-		return getiPageResult(rsSample, pageNo, pageSize, req.getParameterMap());
+		// 补丁：将LabelId_MultiString参数挂到其它Key下，为了屏蔽查询构造器，因为labelId已经为序列属性
+		// TODO labelId修正为String，用模糊查询
+		Map<String, String[]> paramMap = new HashMap(req.getParameterMap());
+		if(paramMap.containsKey("labelId_MultiString")){
+			paramMap.put("labelId_MultiStr",paramMap.get("labelId_MultiString"));
+			paramMap.remove("labelId_MultiString");
+		}
+		return getiPageResult(rsSample, pageNo, pageSize, paramMap);
 	}
 	@ApiOperation(value = "save", notes = "写入样本元数据")
 	@PostMapping(value = "/save")

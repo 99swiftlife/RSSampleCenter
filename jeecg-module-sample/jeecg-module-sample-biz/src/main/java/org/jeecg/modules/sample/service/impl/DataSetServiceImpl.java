@@ -4,6 +4,7 @@ import alluxio.client.file.URIStatus;
 import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import io.swagger.models.auth.In;
 import org.jeecg.boot.starter.rabbitmq.client.RabbitMqClient;
 import org.jeecg.modules.sample.client.CBIRServiceClient;
 import org.jeecg.modules.sample.client.ClassifyClient;
@@ -291,11 +292,13 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
     public synchronized Boolean increasProcessed(Long id, Integer num){
         try{
             Dataset dst = getById(id);
-            dst.setProcessedNum(dst.getProcessedNum()+num);
+            Integer processedNum = dst.getProcessedNum() + num;
+            Integer insNum = dst.getInsNum();
+            dst.setProcessedNum(processedNum);
             updateById(dst);
-            double progress = dst.getProcessedNum()/dst.getInsNum();
+            double progress = ((double)processedNum) /insNum;
             // 广播数据集解析进度
-            ProgressWebSocket.sendProgress(dst.getDatasetName(),progress);
+            ProgressWebSocket.broadcastProgress(dst.getDatasetName(),progress);
             return true;
         }catch(Exception e){
             System.out.println(e);
