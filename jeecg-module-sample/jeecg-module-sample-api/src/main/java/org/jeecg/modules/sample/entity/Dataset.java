@@ -15,6 +15,7 @@ import org.jeecg.modules.sample.handler.MapToJosnTypeHandler;
 import org.springframework.beans.BeanUtils;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -35,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
 @ApiModel(value="dataset对象", description="样本数据集表")
-public class Dataset {
+public class Dataset implements Serializable {
     @TableId(value = "id",type = IdType.AUTO)
     private Long id;
     private String datasetName;
