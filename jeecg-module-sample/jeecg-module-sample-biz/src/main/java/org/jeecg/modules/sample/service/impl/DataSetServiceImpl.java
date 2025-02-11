@@ -5,6 +5,7 @@ import com.baomidou.dynamic.datasource.annotation.DS;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import io.swagger.models.auth.In;
+import lombok.extern.slf4j.Slf4j;
 import org.jeecg.boot.starter.rabbitmq.client.RabbitMqClient;
 import org.jeecg.modules.sample.client.CBIRServiceClient;
 import org.jeecg.modules.sample.client.ClassifyClient;
@@ -32,6 +33,7 @@ import static org.jeecg.modules.sample.entity.SampleStatue.*;
  **/
 @Service
 @DS("postgis")
+@Slf4j
 public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> implements IDataSetService {
     @Autowired
     private ClassifyClient classifyClient;
@@ -298,6 +300,7 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
             updateById(dst);
             double progress = ((double)processedNum) /insNum;
             // 广播数据集解析进度
+            log.info("Broadcast Progress: datasetName [{}], progress [{}]",dst.getDatasetName(),progress);
             ProgressWebSocket.broadcastProgress(dst.getDatasetName(),progress);
             return true;
         }catch(Exception e){

@@ -44,10 +44,10 @@ public class SampleIntegrationJob implements Job {
         System.out.println("Parsing Job Finished====================");
 
         // 记录数据集信息，写入数据集表
-        if(dst.getProcessedNum()>0){
-            dataSetService.increasProcessed(dst.getId(),dst.getProcessedNum());
-            dst.setProcessedNum(null);
-        }
+//        if(dst.getProcessedNum()>0){
+//            dataSetService.increasProcessed(dst.getId(),dst.getProcessedNum());
+//            dst.setProcessedNum(null);
+//        }
         dataSetService.saveOrUpdate(dst);
     }
 }
