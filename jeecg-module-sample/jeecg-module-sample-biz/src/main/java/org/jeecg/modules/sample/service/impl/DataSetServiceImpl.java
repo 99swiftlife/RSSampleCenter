@@ -306,7 +306,7 @@ public class DataSetServiceImpl extends ServiceImpl<DataSetMapper, Dataset> impl
             ProgressWebSocket.broadcastProgress(dst.getDatasetName(), progress);
             return true;
         } catch (Exception e) {
-            System.out.println(e);
+            System.out.println("org.jeecg.modules.sample.service.impl.DataSetServiceImpl.increasProcessed error"+e.getMessage());
             return false;
         }
     }

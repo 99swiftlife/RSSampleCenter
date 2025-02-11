@@ -34,12 +34,13 @@ import static org.jeecg.modules.sample.entity.SampleStatue.*;
 @Slf4j
 @RabbitListener(queues = "meta")
 @RabbitComponent(value = "sampleMetaListener")
-public class RabbitMqListener extends BaseRabbiMqHandler<byte[]>{
+public class RabbitMqListener extends BaseRabbiMqHandler<byte[]> {
     @Autowired
     private ISampleService sampleService;
     @Autowired
     private IDataSetService dataSetService;
     private ObjectMapper objectMapper = new ObjectMapper();
+
     @RabbitHandler
     public void onMessage(byte[] res, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
         super.onMessage(res, deliveryTag, channel, new MqListener<byte[]>() {
@@ -61,19 +62,19 @@ public class RabbitMqListener extends BaseRabbiMqHandler<byte[]>{
                 for (Long id : sampleMetaMap.keySet()) {
                     SampleMetaDTO metaDTO = sampleMetaMap.get(id);
                     SCOpticalSample sample = sampleService.getById(id);
-                    if(sample == null){
-                        System.out.println("存在过期数据！id = "+id);
+                    if (sample == null) {
+                        System.out.println("存在过期数据！id = " + id);
                     }
-                    if(datasetId ==null)datasetId = sample.getDatasetId();
-                    if(sample==null)sample = new SCOpticalSample();
-                    if(metaDTO==null)continue;
-                    if(metaDTO.getSampleSize()!=null)
+                    if (datasetId == null) datasetId = sample.getDatasetId();
+                    if (sample == null) sample = new SCOpticalSample();
+                    if (metaDTO == null) continue;
+                    if (metaDTO.getSampleSize() != null)
                         sample.setSampleSize(metaDTO.getSampleSize());
-                    if(metaDTO.getRes()!=null)
+                    if (metaDTO.getRes() != null)
                         sample.setResolution(metaDTO.getRes());
-                    if(metaDTO.getBbox()!=null)
+                    if (metaDTO.getBbox() != null)
                         sample.setBbox(metaDTO.getBbox());
-                    if(metaDTO.getTime()!=null)
+                    if (metaDTO.getTime() != null)
                         sample.setTime(metaDTO.getTime());
 // TODO 设置校验开关，当需要校验在解析同步校验时进行校验
 //                    if(sampleService.validate(sample,SUCCESS))
@@ -87,6 +88,7 @@ public class RabbitMqListener extends BaseRabbiMqHandler<byte[]>{
                 }
                 sampleService.updateBatchById(sampleList);
                 // 数据集已处理样本数量增加
+                System.out.println("增加已处理的数量");
                 dataSetService.increasProcessed(datasetId, sampleList.size());
             }
         });
