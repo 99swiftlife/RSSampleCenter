@@ -1,5 +1,6 @@
 package org.jeecg.modules.sample.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import lombok.extern.slf4j.Slf4j;
 import org.jeecg.modules.sample.entity.PairDTO;
 import org.springframework.stereotype.Component;
@@ -54,13 +55,17 @@ public class ProgressWebSocket {
         for (String id : taskSessions.keySet()) {
             Session session = taskSessions.get(id);
             if (session != null && session.isOpen()) {
-                session.getAsyncRemote().sendObject(msg, result -> {
-                    if (result.isOK()) {
-                        System.out.println("消息发送成功，目标: " + id + ", 数据集: " + dstName + ", 进度: " + progress);
-                    } else {
-                        System.out.println("消息发送失败，Session ID: " + session.getId() + " " + result.getException());
-                    }
-                });
+                try {
+                    session.getAsyncRemote().sendObject(msg.toJson(), result -> {
+                        if (result.isOK()) {
+                            System.out.println("消息发送成功，目标: " + id + ", 数据集: " + dstName + ", 进度: " + progress);
+                        } else {
+                            System.out.println("消息发送失败，Session ID: " + session.getId() + " " + result.getException());
+                        }
+                    });
+                } catch (JsonProcessingException e) {
+                    System.out.println("消息发送失败，Session ID: " + session.getId() + " " + e.getMessage());
+                }
             }
         }
     }
