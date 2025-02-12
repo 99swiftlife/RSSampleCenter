@@ -56,9 +56,9 @@ public class ProgressWebSocket {
             if (session != null && session.isOpen()) {
                 session.getAsyncRemote().sendObject(msg, result -> {
                     if (result.isOK()) {
-                        log.info("消息发送成功，目标: " + id + ", 数据集: " + dstName + ", 进度: " + progress);
+                        System.out.println("消息发送成功，目标: " + id + ", 数据集: " + dstName + ", 进度: " + progress);
                     } else {
-                        log.error("消息发送失败，Session ID: " + session.getId(), result.getException());
+                        System.out.println("消息发送失败，Session ID: " + session.getId() + " " + result.getException());
                     }
                 });
             }
