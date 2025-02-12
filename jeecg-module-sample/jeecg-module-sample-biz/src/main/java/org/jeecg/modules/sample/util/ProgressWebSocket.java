@@ -56,7 +56,7 @@ public class ProgressWebSocket {
             Session session = taskSessions.get(id);
             if (session != null && session.isOpen()) {
                 try {
-                    session.getAsyncRemote().sendObject(msg.toJson(), result -> {
+                    session.getAsyncRemote().sendText(msg.toJson(), result -> {
                         if (result.isOK()) {
                             System.out.println("消息发送成功，目标: " + id + ", 数据集: " + dstName + ", 进度: " + progress);
                         } else {
